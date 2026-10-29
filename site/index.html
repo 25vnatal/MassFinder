@@ -1,0 +1,858 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="description" content="Find Catholic parishes and Mass times near you in Karnataka. Search by town, pincode, day, time and language.">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>⛪</text></svg>">
+<title>Find a Mass in Karnataka</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Alegreya:wght@500;600;700&family=Alegreya+Sans:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  color-scheme: light;
+  --bg: #F3F5F2; --surface: #FFFFFF; --ink: #1C2230; --muted: #5B6370; --faint: #8A919B;
+  --line: #DCE0DA; --sea: #D6E3E7; --land: #FFFFFF; --land2: #E8EAE3; --distline: #D2D7CF;
+  --dot: #A3AAB3; --green: #2F6B4F; --violet: #5B3F8C; --gold: #8F6A1C;
+  --accent: var(--green);
+  --serif: 'Alegreya', Georgia, 'Times New Roman', serif;
+  --sans: 'Alegreya Sans', 'Segoe UI', system-ui, -apple-system, sans-serif;
+  box-sizing: border-box;
+  padding-top: env(safe-area-inset-top, 0px);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --bg: #14181E; --surface: #1C2229; --ink: #E7EAE5; --muted: #A4ABB5; --faint: #7D8590;
+    --line: #2E3640; --sea: #10161C; --land: #222A33; --land2: #1A2027; --distline: #333C47;
+    --dot: #5E6873; --green: #73B592; --violet: #A88BD8; --gold: #D6AE5C;
+  }
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --bg: #14181E; --surface: #1C2229; --ink: #E7EAE5; --muted: #A4ABB5; --faint: #7D8590;
+  --line: #2E3640; --sea: #10161C; --land: #222A33; --land2: #1A2027; --distline: #333C47;
+  --dot: #5E6873; --green: #73B592; --violet: #A88BD8; --gold: #D6AE5C;
+}
+:root[data-season="violet"] { --accent: var(--violet); }
+:root[data-season="gold"] { --accent: var(--gold); }
+:root { --accent-soft: color-mix(in srgb, var(--accent) 13%, var(--surface)); --accent-line: color-mix(in srgb, var(--accent) 40%, var(--line)); }
+*, *::before, *::after { box-sizing: inherit; }
+html, body { height: 100%; margin: 0; }
+html { scroll-padding-top: env(safe-area-inset-top, 0px); }
+body { background: var(--bg); color: var(--ink); font: 16px/1.45 var(--sans); -webkit-font-smoothing: antialiased; }
+button, input, select { font: inherit; color: inherit; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+a { color: var(--accent); }
+
+.app {
+  height: 100%; display: grid;
+  grid-template-columns: minmax(360px, 460px) 1fr;
+  grid-template-rows: auto auto 1fr;
+  grid-template-areas: "head head" "filt map" "list map";
+}
+
+/* header */
+.top { grid-area: head; display: flex; align-items: center; gap: 28px; padding: 14px 24px; border-bottom: 1px solid var(--line); background: var(--surface); flex-wrap: wrap; }
+.brand { min-width: 220px; }
+.brand h1 { font: 700 30px/1.05 var(--serif); margin: 0; letter-spacing: -0.01em; }
+.season { margin: 4px 0 0; font-size: 14px; color: var(--muted); display: flex; align-items: center; gap: 7px; }
+.season i { width: 9px; height: 9px; border-radius: 50%; background: var(--accent); display: inline-block; }
+.where { flex: 1 1 520px; display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+.searchbox { position: relative; flex: 1 1 280px; }
+.searchbox input { width: 100%; height: 46px; padding: 0 40px 0 44px; border: 1.5px solid var(--line); border-radius: 23px; background: var(--bg); font-size: 16px; }
+.searchbox input:focus { border-color: var(--accent); outline: none; background: var(--surface); }
+.searchbox svg.pin { position: absolute; left: 16px; top: 13px; width: 18px; height: 18px; color: var(--muted); }
+.searchbox .clear { position: absolute; right: 8px; top: 8px; width: 30px; height: 30px; border: 0; border-radius: 50%; background: transparent; cursor: pointer; color: var(--muted); font-size: 20px; line-height: 1; display: none; }
+.searchbox.has .clear { display: block; }
+.suggest { position: absolute; z-index: 30; left: 0; right: 0; top: 52px; background: var(--surface); border: 1px solid var(--line); border-radius: 14px; box-shadow: 0 12px 32px rgba(20, 30, 40, .16); padding: 6px; margin: 0; list-style: none; display: none; max-height: 340px; overflow: auto; }
+.suggest.open { display: block; }
+.suggest li { padding: 8px 12px; border-radius: 9px; cursor: pointer; display: flex; justify-content: space-between; gap: 12px; }
+.suggest li[aria-selected="true"], .suggest li:hover { background: var(--accent-soft); }
+.suggest small { color: var(--muted); white-space: nowrap; }
+.btn { height: 46px; padding: 0 18px; border-radius: 23px; border: 1.5px solid var(--line); background: var(--surface); cursor: pointer; display: inline-flex; align-items: center; gap: 8px; font-weight: 500; white-space: nowrap; }
+.btn:hover { border-color: var(--accent); }
+.btn svg { width: 18px; height: 18px; }
+.radius { height: 46px; border-radius: 23px; border: 1.5px solid var(--line); background: var(--surface); padding: 0 14px; }
+.radius:disabled { opacity: .45; }
+.msg { flex-basis: 100%; margin: 0; font-size: 14px; color: var(--muted); min-height: 0; }
+.msg:empty { display: none; }
+
+/* filters */
+.filters { grid-area: filt; padding: 16px 24px 12px; border-bottom: 1px solid var(--line); background: var(--surface); }
+.fgroup { display: grid; grid-template-columns: 76px 1fr; gap: 6px 10px; align-items: start; margin-bottom: 10px; }
+.fgroup > span { font-size: 14px; color: var(--muted); padding-top: 6px; }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip { border: 1px solid var(--line); background: var(--surface); border-radius: 16px; padding: 4px 12px; font-size: 14.5px; cursor: pointer; line-height: 1.5; }
+.chip:hover { border-color: var(--accent-line); }
+.chip[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--surface); }
+.chip small { opacity: .7; margin-left: 3px; }
+.toggles { display: flex; gap: 18px; flex-wrap: wrap; font-size: 14.5px; margin-top: 4px; }
+.toggles label { display: inline-flex; gap: 7px; align-items: center; cursor: pointer; }
+.toggles input { accent-color: var(--accent); width: 16px; height: 16px; }
+
+/* results */
+.list { grid-area: list; overflow: auto; background: var(--bg); }
+.listhead { position: sticky; top: 0; z-index: 2; background: var(--bg); padding: 14px 24px 10px; display: flex; justify-content: space-between; align-items: baseline; gap: 10px; border-bottom: 1px solid var(--line); }
+.count { font: 600 18px/1.25 var(--serif); margin: 0; }
+.sort { font-size: 14px; color: var(--muted); display: flex; gap: 6px; align-items: center; }
+.sort select { border: 1px solid var(--line); border-radius: 8px; background: var(--surface); padding: 3px 6px; }
+.note { margin: 12px 24px 0; font-size: 14px; color: var(--muted); }
+.results { list-style: none; margin: 0; padding: 8px 12px 24px; }
+.card { display: block; width: 100%; text-align: left; border: 0; background: transparent; padding: 14px 12px; border-radius: 12px; cursor: pointer; border-bottom: 1px solid var(--line); }
+.card:hover, .card.hot { background: var(--surface); }
+.card .row1 { display: flex; justify-content: space-between; gap: 10px; align-items: baseline; }
+.card h3 { font: 600 18.5px/1.25 var(--serif); margin: 0; }
+.card .km { font-size: 14px; color: var(--muted); white-space: nowrap; font-variant-numeric: tabular-nums; }
+.card .place { font-size: 14.5px; color: var(--muted); margin: 2px 0 8px; }
+.times { display: flex; flex-wrap: wrap; gap: 6px; }
+.t { font-size: 14px; border-radius: 7px; padding: 2px 8px; background: var(--accent-soft); color: var(--ink); font-variant-numeric: tabular-nums; }
+.t b { font-weight: 700; }
+.t em { font-style: normal; color: var(--muted); }
+.t.past { background: transparent; border: 1px dashed var(--line); color: var(--faint); }
+.t.more { background: transparent; color: var(--muted); padding-left: 2px; }
+.nottimes { font-size: 14px; color: var(--faint); }
+.empty { padding: 36px 24px; text-align: center; color: var(--muted); }
+.empty p { margin: 0 0 14px; }
+.moreBtn { display: block; margin: 8px auto 24px; }
+
+/* detail */
+.detail { padding: 18px 24px 40px; }
+.back { border: 0; background: none; color: var(--accent); cursor: pointer; padding: 4px 0; font-weight: 500; display: inline-flex; gap: 6px; align-items: center; }
+.detail h2 { font: 700 28px/1.12 var(--serif); margin: 12px 0 4px; }
+.detail .sub { color: var(--muted); margin: 0 0 14px; }
+.actions { display: flex; gap: 8px; flex-wrap: wrap; margin: 0 0 18px; }
+.actions .btn { height: 40px; padding: 0 15px; font-size: 15px; text-decoration: none; color: var(--ink); }
+.actions .btn.primary { background: var(--accent); border-color: var(--accent); color: var(--surface); }
+.facts { display: grid; grid-template-columns: 110px 1fr; gap: 6px 14px; margin: 0 0 22px; font-size: 15px; }
+.facts dt { color: var(--muted); }
+.facts dd { margin: 0; overflow-wrap: anywhere; }
+.detail h4 { font: 600 19px/1.2 var(--serif); margin: 0 0 8px; }
+.week { width: 100%; border-collapse: collapse; font-size: 15px; }
+.week th { text-align: left; font-weight: 500; color: var(--muted); padding: 9px 12px 9px 0; vertical-align: top; width: 92px; border-top: 1px solid var(--line); }
+.week td { padding: 7px 0; border-top: 1px solid var(--line); }
+.week tr.today th { color: var(--accent); font-weight: 700; }
+.week tr.today td, .week tr.today th { background: var(--accent-soft); }
+.week tr.today th { padding-left: 8px; }
+.svc { display: flex; gap: 8px; align-items: baseline; padding: 2px 0; flex-wrap: wrap; }
+.svc .tm { font-weight: 700; font-variant-numeric: tabular-nums; min-width: 66px; }
+.svc .ty { font-size: 13px; border: 1px solid var(--line); border-radius: 6px; padding: 0 6px; color: var(--muted); }
+.svc .mt { color: var(--muted); font-size: 14px; }
+.hint { font-size: 14px; color: var(--muted); margin: 10px 0 0; }
+
+/* map */
+.mapwrap { grid-area: map; position: relative; background: var(--sea); overflow: hidden; touch-action: none; }
+#map { width: 100%; height: 100%; display: block; cursor: grab; user-select: none; }
+#map.dragging { cursor: grabbing; }
+.nb { fill: var(--land2); stroke: var(--distline); stroke-width: .6; vector-effect: non-scaling-stroke; }
+.ka { fill: var(--land); stroke: none; }
+.dl { fill: none; stroke: var(--distline); stroke-width: 1; vector-effect: non-scaling-stroke; }
+.kaedge { fill: none; stroke: var(--faint); stroke-width: 1.2; vector-effect: non-scaling-stroke; }
+.lbl { fill: var(--faint); font-family: var(--sans); text-anchor: middle; pointer-events: none; }
+.dot { fill: var(--dot); stroke: var(--land); cursor: pointer; vector-effect: non-scaling-stroke; stroke-width: 1; }
+.dot.on { fill: var(--accent); }
+.dot.sel { fill: var(--accent); stroke: var(--ink); stroke-width: 2.5; }
+.ring { fill: color-mix(in srgb, var(--accent) 7%, transparent); stroke: var(--accent); stroke-dasharray: 5 4; stroke-width: 1.4; vector-effect: non-scaling-stroke; pointer-events: none; }
+.me { fill: #2B6FD6; stroke: #fff; stroke-width: 2.5; vector-effect: non-scaling-stroke; pointer-events: none; }
+.zoom { position: absolute; right: 16px; top: 16px; display: flex; flex-direction: column; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; overflow: hidden; box-shadow: 0 4px 14px rgba(20, 30, 40, .12); }
+.zoom button { width: 40px; height: 40px; border: 0; background: transparent; cursor: pointer; font-size: 20px; line-height: 1; }
+.zoom button + button { border-top: 1px solid var(--line); }
+.zoom button:hover { background: var(--accent-soft); }
+.legend { position: absolute; left: 16px; bottom: 16px; background: color-mix(in srgb, var(--surface) 92%, transparent); border: 1px solid var(--line); border-radius: 10px; padding: 7px 12px; font-size: 13.5px; color: var(--muted); display: flex; gap: 14px; flex-wrap: wrap; max-width: calc(100% - 32px); }
+.legend span { display: inline-flex; align-items: center; gap: 6px; }
+.legend i { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+.tip { position: absolute; z-index: 5; pointer-events: none; background: var(--ink); color: var(--bg); font-size: 14px; padding: 5px 10px; border-radius: 8px; white-space: nowrap; transform: translate(-50%, calc(-100% - 12px)); display: none; }
+.tip small { opacity: .75; }
+
+@media (max-width: 900px) {
+  html, body { height: auto; }
+  .app { height: auto; display: flex; flex-direction: column; }
+  .top { order: 0; } .filters { order: 1; } .mapwrap { order: 2; } .list { order: 3; }
+  .radius:disabled { display: none; }
+  .chips { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; margin-inline: -16px; padding-inline: 16px; padding-bottom: 2px; }
+  .chips::-webkit-scrollbar { display: none; }
+  .chip { flex: none; }
+  .top { padding: 14px 16px; gap: 12px; }
+  .brand h1 { font-size: 26px; }
+  .filters { padding: 14px 16px 8px; }
+  .fgroup { grid-template-columns: 1fr; gap: 6px; }
+  .fgroup > span { padding-top: 0; }
+  .mapwrap { height: 56vh; min-height: 300px; border-block: 1px solid var(--line); }
+  .list { overflow: visible; }
+  .listhead { padding: 12px 16px; top: env(safe-area-inset-top, 0px); }
+  .results { padding: 6px 4px 24px; }
+  .detail { padding: 16px; }
+  .note { margin: 12px 16px 0; }
+}
+@media (max-width: 520px) {
+  .where .btn span { display: none; }
+  .where .btn { padding: 0 14px; }
+  .facts { grid-template-columns: 1fr; gap: 0 0; }
+  .facts dd { margin-bottom: 8px; }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .card { transition: background-color .12s; }
+}
+</style>
+</head>
+<body>
+<div class="app">
+  <header class="top">
+    <div class="brand">
+      <h1>Find a Mass</h1>
+      <p class="season"><i></i><span id="season"></span></p>
+    </div>
+    <div class="where" role="search">
+      <div class="searchbox" id="sbox">
+        <svg class="pin" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 21s-7-6.2-7-11.5A7 7 0 0 1 19 9.5C19 14.8 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.5"/></svg>
+        <input id="q" type="text" autocomplete="off" placeholder="Town, pincode or parish" aria-label="Search by place, pincode or parish name" role="combobox" aria-expanded="false" aria-controls="sugg" aria-autocomplete="list">
+        <button class="clear" id="qclear" aria-label="Clear place">×</button>
+        <ul class="suggest" id="sugg" role="listbox"></ul>
+      </div>
+      <button class="btn" id="locate" type="button">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/></svg>
+        <span>Use my location</span>
+      </button>
+      <select class="radius" id="radius" aria-label="Distance" disabled>
+        <option value="5">Within 5 km</option>
+        <option value="10">Within 10 km</option>
+        <option value="25" selected>Within 25 km</option>
+        <option value="50">Within 50 km</option>
+        <option value="100">Within 100 km</option>
+        <option value="0">Any distance</option>
+      </select>
+      <p class="msg" id="msg" role="status"></p>
+    </div>
+  </header>
+
+  <section class="filters" aria-label="Filters">
+    <div class="fgroup"><span id="l-day">Day</span><div class="chips" id="days" role="group" aria-labelledby="l-day"></div></div>
+    <div class="fgroup"><span id="l-time">Time</span><div class="chips" id="times" role="group" aria-labelledby="l-time"></div></div>
+    <div class="fgroup"><span id="l-lang">Language</span><div class="chips" id="langs" role="group" aria-labelledby="l-lang"></div></div>
+    <div class="toggles">
+      <label><input type="checkbox" id="withTimes"> Only parishes with Mass times</label>
+      <label><input type="checkbox" id="devotions"> Include adoration and rosary</label>
+    </div>
+  </section>
+
+  <section class="list" id="list" aria-live="polite"></section>
+
+  <section class="mapwrap" id="mapwrap" aria-label="Map of parishes">
+    <svg id="map" role="img" aria-label="Map of Karnataka with parish locations"></svg>
+    <div class="zoom">
+      <button id="zin" aria-label="Zoom in">+</button>
+      <button id="zout" aria-label="Zoom out">−</button>
+      <button id="zfit" aria-label="Show results" title="Show results">⤢</button>
+    </div>
+    <div class="legend"><span><i style="background:var(--accent)"></i>Matches your search</span><span><i style="background:var(--dot)"></i>Other parishes</span></div>
+    <div class="tip" id="tip"></div>
+  </section>
+</div>
+
+<script>
+(async function () {
+'use strict';
+const $ = (s) => document.querySelector(s);
+$('#list').innerHTML = '<p class="note">Loading parishes…</p>';
+let SRC, GEO;
+try {
+  [SRC, GEO] = await Promise.all(['data/parishes.json', 'data/karnataka-map.json'].map((u) =>
+    fetch(u, { cache: 'no-cache' }).then((r) => { if (!r.ok) throw new Error(u + ' returned ' + r.status); return r.json(); })));
+} catch (err) {
+  $('#list').innerHTML = '<div class="empty"><p>The parish directory couldn’t be loaded.</p><p>' +
+    (location.protocol === 'file:' ? 'Open this page through a web server (see README), not by double-clicking the file.' : 'Check your connection and reload the page.') + '</p></div>';
+  console.error(err);
+  return;
+}
+/* convert the published schema (scripts/build_json.py) into the app's working shape */
+const DATA = { p: SRC.parishes.map((p) => ({
+  id: p.id, n: p.name, pt: p.patron, fd: p.feast_day, dio: p.diocese.name,
+  ad: p.address.line, loc: p.address.locality, city: p.address.city, dist: p.address.district,
+  pin: p.address.pincode, st: p.address.state,
+  lat: p.geo.lat, lng: p.geo.lng, gp: p.geo.precision, gs: p.geo.status,
+  ph: p.contact.phones || [], em: p.contact.email, web: p.contact.website,
+  est: p.established, cat: p.catholics,
+  m: (p.masses || []).map((x) => [x.day.slice(0, 3), x.time, x.type, x.languages || [], x.venue, x.recurrence, x.notes]),
+})) };
+const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+
+const DAYNAMES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+const DAYSHORT = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+const MASSLIKE = new Set(['Mass', 'Vigil Mass', 'Novena']);
+const TIMES = [
+  { id: 'early', label: 'Before 7 am', from: 0, to: 420 },
+  { id: 'morning', label: '7 am – noon', from: 420, to: 720 },
+  { id: 'afternoon', label: 'Noon – 5 pm', from: 720, to: 1020 },
+  { id: 'evening', label: 'After 5 pm', from: 1020, to: 1440 },
+];
+
+/* ---------- liturgical season colours the accent ---------- */
+function easter(y) {
+  const a = y % 19, b = Math.floor(y / 100), c = y % 100, d = Math.floor(b / 4), e = b % 4,
+    f = Math.floor((b + 8) / 25), g = Math.floor((b - f + 1) / 3), h = (19 * a + b - d - g + 15) % 30,
+    i = Math.floor(c / 4), k = c % 4, l = (32 + 2 * e + 2 * i - h - k) % 7, m = Math.floor((a + 11 * h + 22 * l) / 451),
+    month = Math.floor((h + l - 7 * m + 114) / 31), day = ((h + l - 7 * m + 114) % 31) + 1;
+  return new Date(y, month - 1, day);
+}
+function season(now) {
+  const y = now.getFullYear(), day = 864e5, t = new Date(y, now.getMonth(), now.getDate()).getTime();
+  const e = easter(y).getTime();
+  const xmas = new Date(y, 11, 25), dow = xmas.getDay();
+  const advent = xmas.getTime() - (dow === 0 ? 28 : dow + 21) * day;
+  if (t >= xmas.getTime() || t <= new Date(y, 0, 13).getTime()) return ['Christmas season', 'gold'];
+  if (t >= advent) return ['Advent', 'violet'];
+  if (t >= e - 46 * day && t < e) return ['Lent', 'violet'];
+  if (t >= e && t <= e + 49 * day) return ['Easter season', 'gold'];
+  return ['Ordinary Time', 'green'];
+}
+const NOW = new Date();
+const [seasonName, seasonColour] = season(NOW);
+document.documentElement.dataset.season = seasonColour;
+$('#season').textContent = NOW.toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long' }) + ', ' + seasonName;
+
+/* ---------- data prep ---------- */
+const parishes = DATA.p.map((p) => {
+  const services = p.m.map((m) => {
+    const [h, mi] = m[1].split(':').map(Number);
+    return { day: DAYSHORT.indexOf(m[0]), min: h * 60 + mi, type: m[2], langs: m[3] || [], venue: m[4], rec: m[5], notes: m[6] };
+  }).filter((s) => s.day >= 0);
+  const langs = [...new Set(services.flatMap((s) => s.langs))];
+  return Object.assign(p, { services, langs, hasCoords: p.lat != null && p.lng != null });
+});
+const withTimesCount = parishes.filter((p) => p.services.length).length;
+
+const C = Math.cos(GEO.lat0 * Math.PI / 180);
+const proj = (lat, lng) => [(lng - GEO.bbox[0]) * C * GEO.K, (GEO.bbox[3] - lat) * GEO.K];
+const UNITS_PER_KM = GEO.K / 111.2;
+parishes.forEach((p) => { if (p.hasCoords) [p.x, p.y] = proj(p.lat, p.lng); });
+
+function km(a, b) {
+  const R = 6371, r = Math.PI / 180, dLat = (b.lat - a.lat) * r, dLng = (b.lng - a.lng) * r;
+  const h = Math.sin(dLat / 2) ** 2 + Math.cos(a.lat * r) * Math.cos(b.lat * r) * Math.sin(dLng / 2) ** 2;
+  return 2 * R * Math.asin(Math.sqrt(h));
+}
+const titleCase = (s) => s.replace(/\w\S*/g, (w) => w[0].toUpperCase() + w.slice(1).toLowerCase());
+
+/* places index for the search box */
+const places = new Map();
+function addPlace(label, sub, kind, p) {
+  if (!label || !p.hasCoords) return;
+  label = String(label).trim().replace(/\s+/g, ' ');
+  if (label.length < 3 || /^\d/.test(label) && kind !== 'pincode') return;
+  const key = kind + ':' + label.toLowerCase();
+  const e = places.get(key) || { label, sub, kind, lat: 0, lng: 0, n: 0 };
+  e.lat += p.lat; e.lng += p.lng; e.n++;
+  places.set(key, e);
+}
+parishes.forEach((p) => {
+  const dist = p.dist || '';
+  addPlace(p.loc && titleCase(p.loc).replace(/\b(Tk|Po|P\.o\.)\b\.?/gi, '').trim(), dist || p.dio.replace(/^(Arch)?[Dd]iocese of /, ''), 'area', p);
+  addPlace(p.city, 'City', 'city', p);
+  addPlace(dist, 'District', 'district', p);
+  addPlace(p.pin, 'Pincode', 'pincode', p);
+  String(p.ad || '').split(/[,(]/).forEach((seg) => {
+    const t = seg.replace(/[–-]?\s*\d{3}\s?\d{3}.*$/, '').replace(/\b(P\.?\s?O\.?|Post|Via|Tq|Tk|Taluk|Dist\.?|District|Hobli)\b\.?/gi, '').replace(/[.)]/g, ' ').trim();
+    if (/^[A-Za-z][A-Za-z .'-]{2,24}$/.test(t) && !/church|road|cross|street|main|layout|stage|block|box|no\b|shrine|parish/i.test(t)) addPlace(titleCase(t), 'Town or area', 'town', p);
+  });
+});
+/* merge duplicates across kinds: keep the entry with most parishes */
+const merged = new Map();
+for (const e of places.values()) {
+  const k = e.label.toLowerCase();
+  if (!merged.has(k) || merged.get(k).n < e.n) merged.set(k, e);
+}
+places.clear(); merged.forEach((v, k) => places.set(k, v));
+const PLACES = [...places.values()].map((e) => ({ ...e, lat: e.lat / e.n, lng: e.lng / e.n }));
+
+/* ---------- state ---------- */
+const state = {
+  origin: null, radius: 25, day: 'any', times: new Set(), langs: new Set(),
+  devotions: false, withTimes: false, sort: 'auto', selected: null, limit: 50,
+};
+const todayIdx = NOW.getDay(), nowMin = NOW.getHours() * 60 + NOW.getMinutes();
+
+function targetDay() {
+  if (state.day === 'today') return todayIdx;
+  if (state.day === 'tomorrow') return (todayIdx + 1) % 7;
+  return state.day === 'any' ? null : state.day;
+}
+function scheduleActive() { return state.day !== 'any' || state.times.size || state.langs.size; }
+function minsUntil(s) {
+  let d = ((s.day - todayIdx + 7) % 7) * 1440 + (s.min - nowMin);
+  if (d < -15) d += 7 * 1440;
+  return d;
+}
+function svcMatches(s) {
+  if (!state.devotions && !MASSLIKE.has(s.type)) return false;
+  const td = targetDay();
+  if (td != null && s.day !== td) return false;
+  if (state.times.size && !TIMES.some((t) => state.times.has(t.id) && s.min >= t.from && s.min < t.to)) return false;
+  if (state.langs.size && !s.langs.some((l) => state.langs.has(l))) return false;
+  return true;
+}
+
+function compute() {
+  const active = scheduleActive();
+  const out = [];
+  for (const p of parishes) {
+    const svcs = p.services.filter(svcMatches).sort((a, b) => minsUntil(a) - minsUntil(b));
+    if ((active || state.withTimes) && !svcs.length) continue;
+    let d = null;
+    if (state.origin) {
+      if (!p.hasCoords) continue;
+      d = km(state.origin, p);
+      if (state.radius && d > state.radius) continue;
+    }
+    out.push({ p, svcs, d, next: svcs.length ? minsUntil(svcs[0]) : Infinity });
+  }
+  const mode = sortMode();
+  out.sort(mode === 'nearest' ? (a, b) => a.d - b.d
+    : mode === 'soonest' ? (a, b) => a.next - b.next || (a.d ?? 0) - (b.d ?? 0)
+    : (a, b) => a.p.n.localeCompare(b.p.n));
+  return out;
+}
+function sortMode() {
+  if (state.sort !== 'auto') return state.sort === 'nearest' && !state.origin ? 'name' : state.sort;
+  if (state.origin) return 'nearest';
+  return scheduleActive() || state.withTimes ? 'soonest' : 'name';
+}
+
+/* ---------- formatting ---------- */
+function fmtTime(min) {
+  const h = Math.floor(min / 60), m = min % 60, ap = h < 12 ? 'am' : 'pm', h12 = ((h + 11) % 12) + 1;
+  return h12 + (m ? ':' + String(m).padStart(2, '0') : '') + ' ' + ap;
+}
+function dayWord(d) {
+  if (d === todayIdx) return 'Today';
+  if (d === (todayIdx + 1) % 7) return 'Tomorrow';
+  return DAYSHORT[d];
+}
+function fmtKm(d) { return d == null ? '' : d < 1 ? '<1 km' : d < 10 ? d.toFixed(1) + ' km' : Math.round(d) + ' km'; }
+function placeLine(p) {
+  const bits = [p.loc && titleCase(p.loc), p.city, p.dist].filter(Boolean);
+  return [...new Set(bits)].join(', ') || p.dio;
+}
+function typeWord(t) { return t === 'Vigil Mass' ? 'Sunday vigil' : t === 'Mass' ? '' : t; }
+
+/* ---------- filter chips ---------- */
+function chip(label, pressed, onClick, extra) {
+  const b = document.createElement('button');
+  b.type = 'button'; b.className = 'chip'; b.setAttribute('aria-pressed', pressed ? 'true' : 'false');
+  b.innerHTML = esc(label) + (extra ? ' <small>' + esc(extra) + '</small>' : '');
+  b.addEventListener('click', onClick);
+  return b;
+}
+function renderChips() {
+  const days = $('#days'); days.innerHTML = '';
+  const dayOpts = [['any', 'Any day'], ['today', 'Today'], ['tomorrow', 'Tomorrow']]
+    .concat([0, 1, 2, 3, 4, 5, 6].filter((d) => d !== todayIdx && d !== (todayIdx + 1) % 7).map((d) => [d, DAYSHORT[d]]));
+  dayOpts.forEach(([v, l]) => days.append(chip(l, state.day === v, () => { state.day = v; update(); })));
+
+  const times = $('#times'); times.innerHTML = '';
+  times.append(chip('Any time', !state.times.size, () => { state.times.clear(); update(); }));
+  TIMES.forEach((t) => times.append(chip(t.label, state.times.has(t.id), () => {
+    state.times.has(t.id) ? state.times.delete(t.id) : state.times.add(t.id); update();
+  })));
+
+  const langs = $('#langs'); langs.innerHTML = '';
+  const counts = {};
+  parishes.forEach((p) => p.services.forEach((s) => s.langs.forEach((l) => { counts[l] = (counts[l] || 0) + 1; })));
+  langs.append(chip('Any language', !state.langs.size, () => { state.langs.clear(); update(); }));
+  Object.keys(counts).sort().forEach((l) => langs.append(chip(l, state.langs.has(l), () => {
+    state.langs.has(l) ? state.langs.delete(l) : state.langs.add(l); update();
+  })));
+}
+
+/* ---------- list ---------- */
+let RESULTS = [];
+function renderList() {
+  const list = $('#list');
+  if (state.selected) { renderDetail(state.selected); return; }
+  const mode = sortMode();
+  const n = RESULTS.length;
+  let head = n === 1 ? '1 parish' : n.toLocaleString('en-IN') + ' parishes';
+  if (state.origin) head += state.radius ? ` within ${state.radius} km of ${state.origin.label}` : ` by distance from ${state.origin.label}`;
+  const sortSel = `<label class="sort">Sort
+      <select id="sortSel">
+        <option value="auto"${state.sort === 'auto' ? ' selected' : ''}>Best match</option>
+        <option value="nearest"${state.sort === 'nearest' ? ' selected' : ''}${state.origin ? '' : ' disabled'}>Nearest</option>
+        <option value="soonest"${state.sort === 'soonest' ? ' selected' : ''}>Next Mass</option>
+        <option value="name"${state.sort === 'name' ? ' selected' : ''}>A to Z</option>
+      </select></label>`;
+  let html = `<div class="listhead"><h2 class="count">${esc(head)}</h2>${sortSel}</div>`;
+  if (!state.origin && !scheduleActive()) html += `<p class="note">Search for a town, area or pincode, or use your location, to see the parishes nearest you.</p>`;
+  if (scheduleActive() || state.withTimes) {
+    html += `<p class="note">Mass times are listed for ${withTimesCount} of ${parishes.length} parishes so far, so many nearby parishes won’t appear when you filter by day, time or language. Clear these filters to see every parish and its phone number.</p>`;
+  }
+  if (!n) {
+    html += `<div class="empty"><p>No parishes match these filters.</p><p>Try a wider distance, another day or time, or a different language.</p><button class="btn" id="resetAll" type="button">Clear filters</button></div>`;
+    list.innerHTML = html; bindListHead();
+    $('#resetAll').addEventListener('click', resetFilters);
+    return;
+  }
+  html += '<ul class="results">';
+  RESULTS.slice(0, state.limit).forEach((r) => {
+    const p = r.p;
+    let times = '';
+    const svcs = r.svcs.length ? r.svcs : (scheduleActive() ? [] : p.services.filter((s) => MASSLIKE.has(s.type)).sort((a, b) => minsUntil(a) - minsUntil(b)));
+    if (svcs.length) {
+      const show = svcs.slice(0, 4).map((s) => {
+        const past = s.day === todayIdx && s.min < nowMin - 15;
+        const extra = [typeWord(s.type), s.langs.join(', '), s.venue && 'at ' + s.venue].filter(Boolean).join(', ');
+        return `<span class="t${past ? ' past' : ''}"><b>${dayWord(s.day)}</b> ${fmtTime(s.min)}${extra ? ' <em>' + esc(extra) + '</em>' : ''}</span>`;
+      }).join('');
+      times = `<div class="times">${show}${svcs.length > 4 ? `<span class="t more">+${svcs.length - 4} more</span>` : ''}</div>`;
+    } else {
+      times = `<div class="nottimes">Mass times not listed yet${p.ph.length ? ', call ' + esc(p.ph[0]) : ''}</div>`;
+    }
+    html += `<li><button class="card" type="button" data-id="${esc(p.id)}">
+      <div class="row1"><h3>${esc(p.n)}</h3><span class="km">${fmtKm(r.d)}</span></div>
+      <div class="place">${esc(placeLine(p))}</div>${times}</button></li>`;
+  });
+  html += '</ul>';
+  if (n > state.limit) html += `<button class="btn moreBtn" id="moreBtn" type="button">Show ${Math.min(50, n - state.limit)} more</button>`;
+  list.innerHTML = html;
+  bindListHead();
+  list.querySelectorAll('.card').forEach((c) => {
+    c.addEventListener('click', () => select(c.dataset.id, true));
+    c.addEventListener('mouseenter', () => hilite(c.dataset.id, true));
+    c.addEventListener('mouseleave', () => hilite(c.dataset.id, false));
+  });
+  const more = $('#moreBtn');
+  if (more) more.addEventListener('click', () => { state.limit += 50; renderList(); });
+}
+function bindListHead() {
+  const s = $('#sortSel');
+  if (s) s.addEventListener('change', () => { state.sort = s.value; update(); });
+}
+
+/* ---------- detail ---------- */
+function renderDetail(p) {
+  const list = $('#list');
+  const dist = state.origin && p.hasCoords ? km(state.origin, p) : null;
+  const precise = p.gp === 'exact' || p.gs === 'verified';
+  const dest = precise ? `${p.lat},${p.lng}` : `${p.n}, ${p.ad || placeLine(p)}`;
+  const dirUrl = 'https://www.google.com/maps/dir/?api=1&destination=' + encodeURIComponent(dest);
+  const web = p.web ? p.web : '';
+  const actions = [
+    `<a class="btn primary" href="${esc(dirUrl)}" target="_blank" rel="noopener">Get directions</a>`,
+    p.ph[0] ? `<a class="btn" href="tel:${esc(p.ph[0].replace(/[^\d+]/g, ''))}">Call ${esc(p.ph[0])}</a>` : '',
+    web ? `<a class="btn" href="${esc(web)}" target="_blank" rel="noopener">Website</a>` : '',
+  ].join('');
+  const facts = [
+    ['Address', [p.ad, p.pin && !String(p.ad || '').replace(/\s/g, '').includes(p.pin) ? p.pin : ''].filter(Boolean).join(', ')],
+    ['Phone', p.ph.join(', ')],
+    ['Email', p.em && `<a href="mailto:${esc(p.em)}">${esc(p.em)}</a>`],
+    ['Patron', p.pt],
+    ['Feast day', p.fd],
+    ['Diocese', p.dio],
+    ['Established', p.est],
+    ['Catholics', p.cat],
+  ].filter(([, v]) => v).map(([k, v]) => `<dt>${k}</dt><dd>${k === 'Email' ? v : esc(v)}</dd>`).join('');
+
+  let sched;
+  if (p.services.length) {
+    const order = [...Array(7)].map((_, i) => (todayIdx + i) % 7);
+    sched = '<table class="week"><tbody>' + order.map((d) => {
+      const svcs = p.services.filter((s) => s.day === d).sort((a, b) => a.min - b.min);
+      const cells = svcs.length ? svcs.map((s) => {
+        const meta = [s.langs.join(', '), s.venue && 'at ' + s.venue, s.rec && s.rec !== 'Weekly' && !(s.notes || '').toLowerCase().includes(s.rec.toLowerCase()) ? s.rec : '', s.notes].filter(Boolean).join(', ');
+        return `<div class="svc"><span class="tm">${fmtTime(s.min)}</span>${s.type !== 'Mass' ? `<span class="ty">${esc(typeWord(s.type) || s.type)}</span>` : ''}${meta ? `<span class="mt">${esc(meta)}</span>` : ''}</div>`;
+      }).join('') : '<span class="mt" style="color:var(--faint)">No services listed</span>';
+      return `<tr${d === todayIdx ? ' class="today"' : ''}><th scope="row">${d === todayIdx ? 'Today' : DAYNAMES[d]}</th><td>${cells}</td></tr>`;
+    }).join('') + '</tbody></table>';
+  } else {
+    sched = `<p class="hint">This parish hasn’t shared its Mass times yet.${p.ph.length ? ' Call the parish office to check.' : ''}</p>`;
+  }
+  const pinNote = !p.hasCoords ? 'This parish isn’t on the map yet.'
+    : precise ? '' : p.gp === 'post_office' ? 'Map pin shows the nearest post office, so the church may be a short distance away.'
+    : 'Map pin is approximate, so use the address or directions to find the church.';
+
+  list.innerHTML = `<article class="detail">
+    <button class="back" id="back" type="button">‹ Back to results</button>
+    <h2>${esc(p.n)}</h2>
+    <p class="sub">${esc(placeLine(p))}${dist != null ? ', ' + fmtKm(dist) + ' away' : ''}</p>
+    <div class="actions">${actions}</div>
+    <h4>Mass times</h4>${sched}
+    <dl class="facts" style="margin-top:22px">${facts}</dl>
+    ${pinNote ? `<p class="hint">${pinNote}</p>` : ''}
+  </article>`;
+  $('#back').addEventListener('click', () => select(null));
+  list.scrollTop = 0;
+}
+
+function select(id, fromList) {
+  const p = id ? parishes.find((x) => x.id === id) : null;
+  parishes.forEach((x) => { if (x.dot) x.dot.style.fill = ''; });
+  hideTip();
+  state.selected = p;
+  try { history.replaceState(null, '', p ? '#' + p.id : location.pathname + location.search); } catch (e) {}
+  renderList(); paintDots();
+  if (p && p.hasCoords) ensureVisible(p);
+  if (p && window.matchMedia('(max-width: 900px)').matches && fromList !== 'map') {
+    $('#list').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+}
+window.addEventListener('hashchange', () => {
+  const id = location.hash.slice(1);
+  if (id && (!state.selected || state.selected.id !== id)) select(id);
+});
+
+/* ---------- map ---------- */
+const svg = $('#map'), NS = 'http://www.w3.org/2000/svg';
+const view = { x: 0, y: 0, w: GEO.w, h: GEO.h };
+function el(tag, attrs, parent) {
+  const e = document.createElementNS(NS, tag);
+  for (const k in attrs) e.setAttribute(k, attrs[k]);
+  if (parent) parent.append(e);
+  return e;
+}
+GEO.neighbours.forEach((n) => el('path', { d: n.d, class: 'nb' }, svg));
+el('path', { d: GEO.state, class: 'ka' }, svg);
+el('path', { d: GEO.districts, class: 'dl' }, svg);
+el('path', { d: GEO.state, class: 'kaedge' }, svg);
+const labelG = el('g', {}, svg);
+GEO.labels.forEach((l) => { const t = el('text', { x: l.x, y: l.y, class: 'lbl' }, labelG); t.textContent = l.n; });
+const ringG = el('g', {}, svg);
+const dimG = el('g', {}, svg), onG = el('g', {}, svg), selG = el('g', {}, svg);
+parishes.forEach((p) => {
+  if (!p.hasCoords) return;
+  p.dot = el('circle', { cx: p.x.toFixed(2), cy: p.y.toFixed(2), r: 3, class: 'dot' }, dimG);
+  p.dot.dataset.id = p.id;
+});
+let ring = null, me = null;
+
+function scale() { return svg.clientWidth / view.w || 1; }
+function applyView() {
+  const cw = svg.clientWidth || 1, ch = svg.clientHeight || 1;
+  view.h = view.w * ch / cw;
+  svg.setAttribute('viewBox', `${view.x} ${view.y} ${view.w} ${view.h}`);
+  const s = scale();
+  const r = Math.max(2.6, Math.min(5.5, 2.4 + s * 0.9)) / s;
+  parishes.forEach((p) => { if (p.dot) p.dot.setAttribute('r', (p.dot.classList.contains('sel') ? r * 1.7 : r).toFixed(3)); });
+  labelG.style.display = s > 1.6 ? '' : 'none';
+  labelG.querySelectorAll('text').forEach((t) => t.setAttribute('font-size', (12 / s).toFixed(2)));
+  if (me) me.setAttribute('r', (6 / s).toFixed(3));
+}
+function paintDots() {
+  const on = new Set(RESULTS.map((r) => r.p.id));
+  parishes.forEach((p) => {
+    if (!p.dot) return;
+    const isSel = state.selected && state.selected.id === p.id;
+    p.dot.classList.toggle('on', on.has(p.id));
+    p.dot.classList.toggle('sel', !!isSel);
+    const target = isSel ? selG : on.has(p.id) ? onG : dimG;
+    if (p.dot.parentNode !== target) target.append(p.dot);
+  });
+  ringG.innerHTML = '';
+  ring = me = null;
+  if (state.origin) {
+    const [x, y] = proj(state.origin.lat, state.origin.lng);
+    if (state.radius) ring = el('circle', { cx: x, cy: y, r: state.radius * UNITS_PER_KM, class: 'ring' }, ringG);
+    me = el('circle', { cx: x, cy: y, r: 4, class: 'me' }, ringG);
+  }
+  applyView();
+}
+function setView(cx, cy, w) {
+  w = Math.max(6, Math.min(GEO.w * 1.6, w));
+  const cw = svg.clientWidth || 1, ch = svg.clientHeight || 1;
+  view.w = w; view.h = w * ch / cw; view.x = cx - w / 2; view.y = cy - view.h / 2;
+  applyView();
+}
+function fitBox(minX, minY, maxX, maxY, pad) {
+  const cw = svg.clientWidth || 1, ch = svg.clientHeight || 1;
+  const bw = Math.max(maxX - minX, 8), bh = Math.max(maxY - minY, 8);
+  const w = Math.max(bw, bh * cw / ch) * (pad || 1.15);
+  setView((minX + maxX) / 2, (minY + maxY) / 2, w);
+}
+function fitResults() {
+  if (state.origin && state.radius) {
+    const [x, y] = proj(state.origin.lat, state.origin.lng), r = state.radius * UNITS_PER_KM;
+    return fitBox(x - r, y - r, x + r, y + r, 1.12);
+  }
+  const pts = RESULTS.map((r) => r.p).filter((p) => p.hasCoords);
+  if (state.origin) pts.push({ x: proj(state.origin.lat, state.origin.lng)[0], y: proj(state.origin.lat, state.origin.lng)[1] });
+  if (!pts.length || pts.length === parishes.length) return fitBox(0, 0, GEO.w, GEO.h, 1.02);
+  fitBox(Math.min(...pts.map((p) => p.x)), Math.min(...pts.map((p) => p.y)), Math.max(...pts.map((p) => p.x)), Math.max(...pts.map((p) => p.y)), 1.25);
+}
+function ensureVisible(p) {
+  const m = view.w * 0.08;
+  if (p.x < view.x + m || p.x > view.x + view.w - m || p.y < view.y + m || p.y > view.y + view.h - m || view.w > 260) {
+    setView(p.x, p.y, Math.min(view.w, 90));
+  }
+}
+function hilite(id, on) {
+  const p = parishes.find((x) => x.id === id);
+  if (!p || !p.dot) return;
+  if (on) { showTip(p); p.dot.style.fill = 'var(--ink)'; } else { hideTip(); p.dot.style.fill = ''; }
+}
+
+/* tooltip */
+const tip = $('#tip');
+function showTip(p) {
+  const r = svg.getBoundingClientRect(), s = scale();
+  const x = (p.x - view.x) * s, y = (p.y - view.y) * s;
+  if (x < 0 || y < 0 || x > r.width || y > r.height) return hideTip();
+  tip.innerHTML = esc(p.n) + (p.loc ? ' <small>' + esc(titleCase(p.loc)) + '</small>' : '');
+  tip.style.left = x + 'px'; tip.style.top = y + 'px'; tip.style.display = 'block';
+}
+function hideTip() { tip.style.display = 'none'; }
+
+/* pan and zoom */
+let drag = null;
+svg.addEventListener('pointerdown', (e) => {
+  drag = { x: e.clientX, y: e.clientY, vx: view.x, vy: view.y, moved: false, id: e.pointerId, target: e.target };
+});
+svg.addEventListener('pointermove', (e) => {
+  if (drag && e.pointerId === drag.id) {
+    const dx = e.clientX - drag.x, dy = e.clientY - drag.y;
+    if (!drag.moved && Math.hypot(dx, dy) > 4) { drag.moved = true; svg.classList.add('dragging'); svg.setPointerCapture(e.pointerId); hideTip(); }
+    if (drag.moved) { const s = scale(); view.x = drag.vx - dx / s; view.y = drag.vy - dy / s; applyView(); }
+    return;
+  }
+  const t = e.target;
+  if (t.classList && t.classList.contains('dot')) showTip(parishes.find((p) => p.id === t.dataset.id)); else hideTip();
+});
+function endDrag(e) {
+  if (!drag || e.pointerId !== drag.id) return;
+  const t = drag.target;
+  if (!drag.moved && t.classList && t.classList.contains('dot')) select(t.dataset.id, 'map');
+  svg.classList.remove('dragging'); drag = null;
+}
+svg.addEventListener('pointerup', endDrag);
+svg.addEventListener('pointercancel', endDrag);
+svg.addEventListener('pointerleave', hideTip);
+function zoomAt(factor, px, py) {
+  const s = scale();
+  const ux = view.x + px / s, uy = view.y + py / s;
+  const w = Math.max(6, Math.min(GEO.w * 1.6, view.w * factor));
+  const k = w / view.w;
+  view.x = ux - (ux - view.x) * k; view.y = uy - (uy - view.y) * k; view.w = w;
+  applyView();
+}
+svg.addEventListener('wheel', (e) => {
+  e.preventDefault();
+  const r = svg.getBoundingClientRect();
+  zoomAt(Math.exp(e.deltaY * 0.0015), e.clientX - r.left, e.clientY - r.top);
+}, { passive: false });
+$('#zin').addEventListener('click', () => zoomAt(0.6, svg.clientWidth / 2, svg.clientHeight / 2));
+$('#zout').addEventListener('click', () => zoomAt(1.6, svg.clientWidth / 2, svg.clientHeight / 2));
+$('#zfit').addEventListener('click', fitResults);
+new ResizeObserver(() => applyView()).observe(svg);
+
+/* ---------- search box ---------- */
+const q = $('#q'), sugg = $('#sugg'), sbox = $('#sbox');
+let sItems = [], sIdx = -1;
+function suggestions(text) {
+  const t = text.trim().toLowerCase();
+  if (t.length < 2) return [];
+  const score = (label) => { const l = label.toLowerCase(); return l.startsWith(t) ? 0 : l.includes(' ' + t) ? 1 : l.includes(t) ? 2 : 9; };
+  const pl = PLACES.map((e) => ({ e, s: score(e.label) })).filter((x) => x.s < 9)
+    .sort((a, b) => a.s - b.s || b.e.n - a.e.n).slice(0, 6)
+    .map(({ e }) => ({ kind: 'place', label: e.label, sub: e.kind === 'area' ? e.sub : e.sub, lat: e.lat, lng: e.lng, n: e.n }));
+  const pr = parishes.filter((p) => score(p.n) < 9).sort((a, b) => score(a.n) - score(b.n)).slice(0, 8 - pl.length)
+    .map((p) => ({ kind: 'parish', label: p.n, sub: placeLine(p), id: p.id }));
+  return pl.concat(pr);
+}
+function renderSugg() {
+  sugg.innerHTML = sItems.map((s, i) => `<li role="option" id="opt${i}" aria-selected="${i === sIdx}" data-i="${i}"><span>${esc(s.label)}</span><small>${esc(s.kind === 'parish' ? 'Parish, ' + s.sub : s.sub + (s.n ? ', ' + s.n + (s.n === 1 ? ' parish' : ' parishes') : ''))}</small></li>`).join('');
+  const open = sItems.length > 0;
+  sugg.classList.toggle('open', open);
+  q.setAttribute('aria-expanded', open ? 'true' : 'false');
+  q.setAttribute('aria-activedescendant', sIdx >= 0 ? 'opt' + sIdx : '');
+}
+function closeSugg() { sItems = []; sIdx = -1; renderSugg(); }
+function choose(s) {
+  closeSugg();
+  if (!s) return;
+  setMsg('');
+  if (s.kind === 'parish') {
+    q.value = s.label; sbox.classList.add('has');
+    select(s.id); return;
+  }
+  q.value = s.label; sbox.classList.add('has');
+  setOrigin({ lat: s.lat, lng: s.lng, label: s.label });
+}
+q.addEventListener('input', () => {
+  sbox.classList.toggle('has', !!q.value);
+  sItems = suggestions(q.value); sIdx = sItems.length ? 0 : -1; renderSugg();
+});
+q.addEventListener('keydown', (e) => {
+  if (e.key === 'ArrowDown') { e.preventDefault(); if (sItems.length) { sIdx = (sIdx + 1) % sItems.length; renderSugg(); } }
+  else if (e.key === 'ArrowUp') { e.preventDefault(); if (sItems.length) { sIdx = (sIdx - 1 + sItems.length) % sItems.length; renderSugg(); } }
+  else if (e.key === 'Enter') {
+    e.preventDefault();
+    if (sItems.length) choose(sItems[Math.max(0, sIdx)]);
+    else if (q.value.trim()) setMsg(`No town, area, pincode or parish called “${q.value.trim()}” is in the directory yet. Try a nearby town or the district name.`);
+  } else if (e.key === 'Escape') closeSugg();
+});
+sugg.addEventListener('mousedown', (e) => {
+  const li = e.target.closest('li'); if (!li) return;
+  e.preventDefault(); choose(sItems[+li.dataset.i]);
+});
+q.addEventListener('blur', () => setTimeout(closeSugg, 120));
+$('#qclear').addEventListener('click', () => {
+  q.value = ''; sbox.classList.remove('has'); closeSugg(); setMsg('');
+  setOrigin(null); q.focus();
+});
+function setMsg(t) { $('#msg').textContent = t; }
+
+function setOrigin(o) {
+  state.origin = o; state.limit = 50; state.selected = null;
+  $('#radius').disabled = !o;
+  try { history.replaceState(null, '', location.pathname + location.search); } catch (e) {}
+  update(true);
+}
+$('#radius').addEventListener('change', (e) => { state.radius = +e.target.value; update(true); });
+
+$('#locate').addEventListener('click', () => {
+  if (!navigator.geolocation) { setMsg('This browser can’t share your location. Type a town or area instead.'); return; }
+  setMsg('Finding your location…');
+  navigator.geolocation.getCurrentPosition((pos) => {
+    const o = { lat: pos.coords.latitude, lng: pos.coords.longitude, label: 'your location' };
+    const nearest = parishes.filter((p) => p.hasCoords).reduce((m, p) => Math.min(m, km(o, p)), Infinity);
+    q.value = 'My location'; sbox.classList.add('has');
+    if (nearest > 150) setMsg('You seem to be outside Karnataka. The directory covers 7 dioceses in Karnataka for now, so results may be far away.');
+    else setMsg('');
+    if (state.radius === 25) { state.radius = 10; $('#radius').value = '10'; }
+    setOrigin(o);
+  }, (err) => {
+    setMsg(err.code === 1 ? 'Location access is blocked. Allow it in your browser settings, or type a town or area instead.'
+      : 'Couldn’t get your location. Type a town or area instead.');
+  }, { enableHighAccuracy: false, timeout: 10000, maximumAge: 300000 });
+});
+
+$('#withTimes').addEventListener('change', (e) => { state.withTimes = e.target.checked; update(); });
+$('#devotions').addEventListener('change', (e) => { state.devotions = e.target.checked; update(); });
+
+function resetFilters() {
+  state.day = 'any'; state.times.clear(); state.langs.clear(); state.withTimes = false;
+  $('#withTimes').checked = false;
+  if (state.origin && state.radius && state.radius < 100) {
+    const steps = [5, 10, 25, 50, 100]; state.radius = steps[steps.indexOf(state.radius) + 1] || 100; $('#radius').value = String(state.radius);
+  }
+  update(true);
+}
+
+/* ---------- main update ---------- */
+function update(refit) {
+  if (!refit) state.limit = 50;
+  if (state.selected && refit !== 'keep') state.selected = null;
+  RESULTS = compute();
+  renderChips(); renderList(); paintDots();
+  if (refit) fitResults();
+}
+
+/* first paint */
+requestAnimationFrame(() => {
+  update();
+  fitBox(0, 0, GEO.w, GEO.h, 1.02);
+  const id = location.hash.slice(1);
+  if (id && parishes.some((p) => p.id === id)) select(id);
+});
+})();
+</script>
+</body>
+</html>
