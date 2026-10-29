@@ -9,6 +9,9 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Alegreya:wght@500;600;700&family=Alegreya+Sans:wght@400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="vendor/maplibre-gl/maplibre-gl.css">
+<script src="vendor/maplibre-gl/maplibre-gl.js"></script>
+<script src="config.js"></script>
 <style>
 :root {
   color-scheme: light;
@@ -143,28 +146,34 @@ a { color: var(--accent); }
 .hint { font-size: 14px; color: var(--muted); margin: 10px 0 0; }
 
 /* map */
-.mapwrap { grid-area: map; position: relative; background: var(--sea); overflow: hidden; touch-action: none; }
-#map { width: 100%; height: 100%; display: block; cursor: grab; user-select: none; }
-#map.dragging { cursor: grabbing; }
-.nb { fill: var(--land2); stroke: var(--distline); stroke-width: .6; vector-effect: non-scaling-stroke; }
-.ka { fill: var(--land); stroke: none; }
-.dl { fill: none; stroke: var(--distline); stroke-width: 1; vector-effect: non-scaling-stroke; }
-.kaedge { fill: none; stroke: var(--faint); stroke-width: 1.2; vector-effect: non-scaling-stroke; }
-.lbl { fill: var(--faint); font-family: var(--sans); text-anchor: middle; pointer-events: none; }
-.dot { fill: var(--dot); stroke: var(--land); cursor: pointer; vector-effect: non-scaling-stroke; stroke-width: 1; }
-.dot.on { fill: var(--accent); }
-.dot.sel { fill: var(--accent); stroke: var(--ink); stroke-width: 2.5; }
-.ring { fill: color-mix(in srgb, var(--accent) 7%, transparent); stroke: var(--accent); stroke-dasharray: 5 4; stroke-width: 1.4; vector-effect: non-scaling-stroke; pointer-events: none; }
-.me { fill: #2B6FD6; stroke: #fff; stroke-width: 2.5; vector-effect: non-scaling-stroke; pointer-events: none; }
-.zoom { position: absolute; right: 16px; top: 16px; display: flex; flex-direction: column; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; overflow: hidden; box-shadow: 0 4px 14px rgba(20, 30, 40, .12); }
-.zoom button { width: 40px; height: 40px; border: 0; background: transparent; cursor: pointer; font-size: 20px; line-height: 1; }
-.zoom button + button { border-top: 1px solid var(--line); }
-.zoom button:hover { background: var(--accent-soft); }
-.legend { position: absolute; left: 16px; bottom: 16px; background: color-mix(in srgb, var(--surface) 92%, transparent); border: 1px solid var(--line); border-radius: 10px; padding: 7px 12px; font-size: 13.5px; color: var(--muted); display: flex; gap: 14px; flex-wrap: wrap; max-width: calc(100% - 32px); }
+.mapwrap { grid-area: map; position: relative; background: var(--sea); overflow: hidden; }
+#map { position: absolute; inset: 0; }
+.cluster { border: 0; padding: 0; cursor: pointer; border-radius: 50%; display: grid; place-items: center; font: 700 14px/1 var(--sans); color: var(--surface);
+  background: var(--accent); box-shadow: 0 0 0 5px color-mix(in srgb, var(--accent) 28%, transparent), 0 2px 8px rgba(0, 0, 0, .25); }
+.cluster:hover { box-shadow: 0 0 0 8px color-mix(in srgb, var(--accent) 32%, transparent), 0 2px 10px rgba(0, 0, 0, .3); }
+.cluster.s { width: 32px; height: 32px; } .cluster.m { width: 40px; height: 40px; font-size: 15px; } .cluster.l { width: 50px; height: 50px; font-size: 16px; }
+.maplibregl-popup-content { background: var(--surface); color: var(--ink); border-radius: 14px; padding: 14px 16px 12px; box-shadow: 0 10px 30px rgba(10, 20, 30, .25); font-family: var(--sans); }
+.maplibregl-popup-anchor-bottom .maplibregl-popup-tip, .maplibregl-popup-anchor-bottom-left .maplibregl-popup-tip, .maplibregl-popup-anchor-bottom-right .maplibregl-popup-tip { border-top-color: var(--surface); }
+.maplibregl-popup-anchor-top .maplibregl-popup-tip, .maplibregl-popup-anchor-top-left .maplibregl-popup-tip, .maplibregl-popup-anchor-top-right .maplibregl-popup-tip { border-bottom-color: var(--surface); }
+.maplibregl-popup-anchor-left .maplibregl-popup-tip { border-right-color: var(--surface); }
+.maplibregl-popup-anchor-right .maplibregl-popup-tip { border-left-color: var(--surface); }
+.maplibregl-popup-close-button { font-size: 20px; width: 30px; height: 30px; color: var(--muted); border-radius: 0 14px 0 8px; }
+.pop h3 { font: 600 18px/1.2 var(--serif); margin: 0 22px 2px 0; }
+.pop .place { font-size: 14px; color: var(--muted); margin: 0 0 10px; }
+.pop .fd { font-size: 13.5px; color: var(--muted); margin: -6px 0 10px; }
+.pop .times, .pop .nottimes { margin-bottom: 12px; }
+.pop .acts { display: flex; gap: 6px; flex-wrap: wrap; }
+.pop .acts a, .pop .acts button { font: 500 14px/1 var(--sans); height: 34px; padding: 0 12px; border-radius: 17px; border: 1.5px solid var(--line); background: var(--surface); color: var(--ink); cursor: pointer; text-decoration: none; display: inline-flex; align-items: center; }
+.pop .acts .primary { background: var(--accent); border-color: var(--accent); color: var(--surface); }
+.fitctl button { font-size: 17px; }
+.legend { position: absolute; left: 12px; bottom: 12px; z-index: 2; background: color-mix(in srgb, var(--surface) 92%, transparent); border: 1px solid var(--line); border-radius: 10px; padding: 6px 12px; font-size: 13.5px; color: var(--muted); display: flex; gap: 14px; flex-wrap: wrap; max-width: calc(100% - 140px); }
 .legend span { display: inline-flex; align-items: center; gap: 6px; }
 .legend i { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
-.tip { position: absolute; z-index: 5; pointer-events: none; background: var(--ink); color: var(--bg); font-size: 14px; padding: 5px 10px; border-radius: 8px; white-space: nowrap; transform: translate(-50%, calc(-100% - 12px)); display: none; }
-.tip small { opacity: .75; }
+.legend i.c { width: 16px; height: 16px; background: var(--accent); color: var(--surface); font: 700 9px/16px var(--sans); text-align: center; font-style: normal; }
+.maplibregl-ctrl-attrib { font-size: 11px; }
+.mapnote { position: absolute; top: 12px; left: 12px; z-index: 2; margin: 0; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 6px 12px; font-size: 13.5px; color: var(--muted); max-width: calc(100% - 80px); }
+.mapnote:empty { display: none; }
+@media (max-width: 600px) { .legend { display: none; } }
 
 @media (max-width: 900px) {
   html, body { height: auto; }
@@ -240,14 +249,9 @@ a { color: var(--accent); }
   <section class="list" id="list" aria-live="polite"></section>
 
   <section class="mapwrap" id="mapwrap" aria-label="Map of parishes">
-    <svg id="map" role="img" aria-label="Map of Karnataka with parish locations"></svg>
-    <div class="zoom">
-      <button id="zin" aria-label="Zoom in">+</button>
-      <button id="zout" aria-label="Zoom out">−</button>
-      <button id="zfit" aria-label="Show results" title="Show results">⤢</button>
-    </div>
-    <div class="legend"><span><i style="background:var(--accent)"></i>Matches your search</span><span><i style="background:var(--dot)"></i>Other parishes</span></div>
-    <div class="tip" id="tip"></div>
+    <div id="map"></div>
+    <p class="mapnote" id="mapnote"></p>
+    <div class="legend"><span><i class="c">3</i>Group of parishes, click to zoom in</span><span><i style="background:var(--accent)"></i>Parish</span><span id="lg-other"><i style="background:var(--dot)"></i>Doesn’t match filters</span></div>
   </section>
 </div>
 
@@ -256,10 +260,9 @@ a { color: var(--accent); }
 'use strict';
 const $ = (s) => document.querySelector(s);
 $('#list').innerHTML = '<p class="note">Loading parishes…</p>';
-let SRC, GEO;
+let SRC;
 try {
-  [SRC, GEO] = await Promise.all(['data/parishes.json', 'data/karnataka-map.json'].map((u) =>
-    fetch(u, { cache: 'no-cache' }).then((r) => { if (!r.ok) throw new Error(u + ' returned ' + r.status); return r.json(); })));
+  SRC = await fetch('data/parishes.json', { cache: 'no-cache' }).then((r) => { if (!r.ok) throw new Error('parishes.json returned ' + r.status); return r.json(); });
 } catch (err) {
   $('#list').innerHTML = '<div class="empty"><p>The parish directory couldn’t be loaded.</p><p>' +
     (location.protocol === 'file:' ? 'Open this page through a web server (see README), not by double-clicking the file.' : 'Check your connection and reload the page.') + '</p></div>';
@@ -323,10 +326,6 @@ const parishes = DATA.p.map((p) => {
 });
 const withTimesCount = parishes.filter((p) => p.services.length).length;
 
-const C = Math.cos(GEO.lat0 * Math.PI / 180);
-const proj = (lat, lng) => [(lng - GEO.bbox[0]) * C * GEO.K, (GEO.bbox[3] - lat) * GEO.K];
-const UNITS_PER_KM = GEO.K / 111.2;
-parishes.forEach((p) => { if (p.hasCoords) [p.x, p.y] = proj(p.lat, p.lng); });
 
 function km(a, b) {
   const R = 6371, r = Math.PI / 180, dLat = (b.lat - a.lat) * r, dLng = (b.lng - a.lng) * r;
@@ -585,12 +584,11 @@ function renderDetail(p) {
 
 function select(id, fromList) {
   const p = id ? parishes.find((x) => x.id === id) : null;
-  parishes.forEach((x) => { if (x.dot) x.dot.style.fill = ''; });
-  hideTip();
   state.selected = p;
   try { history.replaceState(null, '', p ? '#' + p.id : location.pathname + location.search); } catch (e) {}
   renderList(); paintDots();
-  if (p && p.hasCoords) ensureVisible(p);
+  if (p && p.hasCoords) ensureVisible(p, fromList === 'map');
+  if (!p) closePopup();
   if (p && window.matchMedia('(max-width: 900px)').matches && fromList !== 'map') {
     $('#list').scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
@@ -601,146 +599,230 @@ window.addEventListener('hashchange', () => {
 });
 
 /* ---------- map ---------- */
-const svg = $('#map'), NS = 'http://www.w3.org/2000/svg';
-const view = { x: 0, y: 0, w: GEO.w, h: GEO.h };
-function el(tag, attrs, parent) {
-  const e = document.createElementNS(NS, tag);
-  for (const k in attrs) e.setAttribute(k, attrs[k]);
-  if (parent) parent.append(e);
-  return e;
+const CFG = Object.assign({ maptilerKey: '', mapStyle: 'streets-v2', mapStyleDark: 'streets-v2-dark' }, window.FIND_A_MASS_CONFIG || {});
+const KA_BOUNDS = [[73.9, 11.5], [78.7, 18.5]];
+const darkMQ = window.matchMedia('(prefers-color-scheme: dark)');
+const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+const isDark = () => document.documentElement.dataset.theme === 'dark' || (document.documentElement.dataset.theme !== 'light' && darkMQ.matches);
+function cssColor(v) {
+  const e = document.createElement('i');
+  e.style.color = `var(${v})`; document.body.append(e);
+  const c = getComputedStyle(e).color; e.remove(); return c;
 }
-GEO.neighbours.forEach((n) => el('path', { d: n.d, class: 'nb' }, svg));
-el('path', { d: GEO.state, class: 'ka' }, svg);
-el('path', { d: GEO.districts, class: 'dl' }, svg);
-el('path', { d: GEO.state, class: 'kaedge' }, svg);
-const labelG = el('g', {}, svg);
-GEO.labels.forEach((l) => { const t = el('text', { x: l.x, y: l.y, class: 'lbl' }, labelG); t.textContent = l.n; });
-const ringG = el('g', {}, svg);
-const dimG = el('g', {}, svg), onG = el('g', {}, svg), selG = el('g', {}, svg);
-parishes.forEach((p) => {
-  if (!p.hasCoords) return;
-  p.dot = el('circle', { cx: p.x.toFixed(2), cy: p.y.toFixed(2), r: 3, class: 'dot' }, dimG);
-  p.dot.dataset.id = p.id;
-});
-let ring = null, me = null;
-
-function scale() { return svg.clientWidth / view.w || 1; }
-function applyView() {
-  const cw = svg.clientWidth || 1, ch = svg.clientHeight || 1;
-  view.h = view.w * ch / cw;
-  svg.setAttribute('viewBox', `${view.x} ${view.y} ${view.w} ${view.h}`);
-  const s = scale();
-  const r = Math.max(2.6, Math.min(5.5, 2.4 + s * 0.9)) / s;
-  parishes.forEach((p) => { if (p.dot) p.dot.setAttribute('r', (p.dot.classList.contains('sel') ? r * 1.7 : r).toFixed(3)); });
-  labelG.style.display = s > 1.6 ? '' : 'none';
-  labelG.querySelectorAll('text').forEach((t) => t.setAttribute('font-size', (12 / s).toFixed(2)));
-  if (me) me.setAttribute('r', (6 / s).toFixed(3));
-}
-function paintDots() {
-  const on = new Set(RESULTS.map((r) => r.p.id));
-  parishes.forEach((p) => {
-    if (!p.dot) return;
-    const isSel = state.selected && state.selected.id === p.id;
-    p.dot.classList.toggle('on', on.has(p.id));
-    p.dot.classList.toggle('sel', !!isSel);
-    const target = isSel ? selG : on.has(p.id) ? onG : dimG;
-    if (p.dot.parentNode !== target) target.append(p.dot);
-  });
-  ringG.innerHTML = '';
-  ring = me = null;
-  if (state.origin) {
-    const [x, y] = proj(state.origin.lat, state.origin.lng);
-    if (state.radius) ring = el('circle', { cx: x, cy: y, r: state.radius * UNITS_PER_KM, class: 'ring' }, ringG);
-    me = el('circle', { cx: x, cy: y, r: 4, class: 'me' }, ringG);
+let styleReady = false, triedLight = false;
+function styleSpec() {
+  if (CFG.maptilerKey) {
+    const name = isDark() && !triedLight ? CFG.mapStyleDark : CFG.mapStyle;
+    return `https://api.maptiler.com/maps/${encodeURIComponent(name)}/style.json?key=${encodeURIComponent(CFG.maptilerKey)}`;
   }
-  applyView();
+  /* no key: plain district map built from data/karnataka.geojson */
+  return {
+    version: 8,
+    sources: { ka: { type: 'geojson', data: 'data/karnataka.geojson', attribution: 'District boundaries: Census of India 2011' } },
+    layers: [
+      { id: 'bg', type: 'background', paint: { 'background-color': cssColor('--sea') } },
+      { id: 'nb', type: 'fill', source: 'ka', filter: ['==', ['get', 'kind'], 'neighbour'], paint: { 'fill-color': cssColor('--land2'), 'fill-outline-color': cssColor('--distline') } },
+      { id: 'dist', type: 'fill', source: 'ka', filter: ['==', ['get', 'kind'], 'district'], paint: { 'fill-color': cssColor('--land') } },
+      { id: 'distline', type: 'line', source: 'ka', filter: ['==', ['get', 'kind'], 'district'], paint: { 'line-color': cssColor('--distline'), 'line-width': 1 } },
+    ],
+  };
 }
-function setView(cx, cy, w) {
-  w = Math.max(6, Math.min(GEO.w * 1.6, w));
-  const cw = svg.clientWidth || 1, ch = svg.clientHeight || 1;
-  view.w = w; view.h = w * ch / cw; view.x = cx - w / 2; view.y = cy - view.h / 2;
-  applyView();
+
+const map = new maplibregl.Map({
+  container: 'map', style: styleSpec(), bounds: KA_BOUNDS, fitBoundsOptions: { padding: 24 },
+  attributionControl: { compact: true }, dragRotate: false, pitchWithRotate: false, maxZoom: 18,
+});
+map.touchZoomRotate.disableRotation();
+map.addControl(new maplibregl.NavigationControl({ showCompass: false }), 'top-right');
+class FitControl {
+  onAdd() {
+    const d = document.createElement('div');
+    d.className = 'maplibregl-ctrl maplibregl-ctrl-group fitctl';
+    d.innerHTML = '<button type="button" title="Show all results" aria-label="Show all results">⤢</button>';
+    d.querySelector('button').addEventListener('click', () => fitResults());
+    return d;
+  }
+  onRemove() {}
 }
-function fitBox(minX, minY, maxX, maxY, pad) {
-  const cw = svg.clientWidth || 1, ch = svg.clientHeight || 1;
-  const bw = Math.max(maxX - minX, 8), bh = Math.max(maxY - minY, 8);
-  const w = Math.max(bw, bh * cw / ch) * (pad || 1.15);
-  setView((minX + maxX) / 2, (minY + maxY) / 2, w);
+map.addControl(new FitControl(), 'top-right');
+
+map.on('error', (e) => {
+  if (styleReady || !CFG.maptilerKey) return;
+  if (isDark() && !triedLight) { triedLight = true; }
+  else { console.warn('Street map unavailable (check the MapTiler key in config.js); using the district map.', e.error); CFG.maptilerKey = ''; }
+  map.setStyle(styleSpec(), { diff: false });
+});
+map.on('style.load', () => { styleReady = true; englishLabels(); addLayers(); });
+darkMQ.addEventListener('change', () => { styleReady = false; triedLight = false; resetClusters(); map.setStyle(styleSpec(), { diff: false }); });
+
+function englishLabels() {
+  if (!CFG.maptilerKey) return;
+  for (const l of map.getStyle().layers) {
+    const tf = l.type === 'symbol' && l.layout && l.layout['text-field'];
+    if (tf && JSON.stringify(tf).includes('name')) {
+      try { map.setLayoutProperty(l.id, 'text-field', ['coalesce', ['get', 'name:en'], ['get', 'name:latin'], ['get', 'name']]); } catch (e) {}
+    }
+  }
+}
+
+/* data for the map */
+const EMPTY = { type: 'FeatureCollection', features: [] };
+const fc = (list) => ({ type: 'FeatureCollection', features: list.filter((p) => p.hasCoords).map((p) => ({ type: 'Feature', properties: { id: p.id }, geometry: { type: 'Point', coordinates: [p.lng, p.lat] } })) });
+function circlePoly(lat, lng, radiusKm) {
+  const pts = [];
+  for (let i = 0; i <= 72; i++) {
+    const a = (i / 72) * 2 * Math.PI;
+    pts.push([lng + (radiusKm / (111.2 * Math.cos(lat * Math.PI / 180))) * Math.sin(a), lat + (radiusKm / 111.2) * Math.cos(a)]);
+  }
+  return pts;
+}
+function mapData() {
+  const on = new Set(RESULTS.map((r) => r.p.id));
+  const filtered = scheduleActive() || state.withTimes || state.origin;
+  return {
+    results: fc(RESULTS.map((r) => r.p)),
+    others: filtered ? fc(parishes.filter((p) => !on.has(p.id))) : EMPTY,
+    origin: state.origin ? { type: 'FeatureCollection', features: [{ type: 'Feature', properties: {}, geometry: { type: 'Point', coordinates: [state.origin.lng, state.origin.lat] } }] } : EMPTY,
+    radius: state.origin && state.radius ? { type: 'FeatureCollection', features: [{ type: 'Feature', properties: {}, geometry: { type: 'Polygon', coordinates: [circlePoly(state.origin.lat, state.origin.lng, state.radius)] } }] } : EMPTY,
+  };
+}
+
+function addLayers() {
+  const accent = cssColor('--accent'), grey = cssColor('--dot'), ink = cssColor('--ink'), surface = cssColor('--surface');
+  const d = mapData();
+  map.addSource('radius', { type: 'geojson', data: d.radius });
+  map.addLayer({ id: 'radius-fill', type: 'fill', source: 'radius', paint: { 'fill-color': accent, 'fill-opacity': 0.07 } });
+  map.addLayer({ id: 'radius-line', type: 'line', source: 'radius', paint: { 'line-color': accent, 'line-width': 1.6, 'line-dasharray': [3, 2] } });
+  map.addSource('origin', { type: 'geojson', data: d.origin });
+  map.addLayer({ id: 'origin-halo', type: 'circle', source: 'origin', paint: { 'circle-radius': 15, 'circle-color': '#2B6FD6', 'circle-opacity': 0.18 } });
+  map.addLayer({ id: 'origin', type: 'circle', source: 'origin', paint: { 'circle-radius': 7, 'circle-color': '#2B6FD6', 'circle-stroke-color': '#ffffff', 'circle-stroke-width': 3 } });
+  map.addSource('others', { type: 'geojson', data: d.others });
+  map.addLayer({ id: 'others', type: 'circle', source: 'others', paint: {
+    'circle-radius': ['interpolate', ['linear'], ['zoom'], 6, 2.5, 14, 6], 'circle-color': grey, 'circle-opacity': 0.9,
+    'circle-stroke-color': surface, 'circle-stroke-width': 1 } });
+  map.addSource('parishes', { type: 'geojson', data: d.results, cluster: true, clusterRadius: 46, clusterMaxZoom: 13 });
+  map.addLayer({ id: 'pts', type: 'circle', source: 'parishes', filter: ['!', ['has', 'point_count']], paint: {
+    'circle-radius': ['interpolate', ['linear'], ['zoom'], 6, 5.5, 15, 9], 'circle-color': accent,
+    'circle-stroke-color': surface, 'circle-stroke-width': 2 } });
+  map.addLayer({ id: 'pts-hl', type: 'circle', source: 'parishes', filter: ['in', ['get', 'id'], ['literal', []]], paint: {
+    'circle-radius': ['interpolate', ['linear'], ['zoom'], 6, 9, 15, 13], 'circle-color': accent,
+    'circle-stroke-color': ink, 'circle-stroke-width': 3 } });
+  $('#lg-other').style.display = d.others.features.length ? '' : 'none';
+  updateHL();
+}
+
+/* numbered cluster bubbles (HTML markers, so they work with or without map fonts) */
+const clusterMarkers = new Map();
+function resetClusters() { clusterMarkers.forEach((m) => m.remove()); clusterMarkers.clear(); }
+function syncClusters() {
+  if (!styleReady || !map.getSource('parishes') || !map.isSourceLoaded('parishes')) return;
+  const seen = new Set();
+  for (const f of map.querySourceFeatures('parishes', { filter: ['has', 'point_count'] })) {
+    const id = f.properties.cluster_id;
+    if (seen.has(id)) continue;
+    seen.add(id);
+    if (!clusterMarkers.has(id)) {
+      const n = f.properties.point_count, coords = f.geometry.coordinates;
+      const b = document.createElement('button');
+      b.type = 'button'; b.className = 'cluster ' + (n < 10 ? 's' : n < 50 ? 'm' : 'l');
+      b.textContent = n; b.setAttribute('aria-label', `${n} parishes here. Zoom in`);
+      b.addEventListener('click', (e) => {
+        e.stopPropagation();
+        map.getSource('parishes').getClusterExpansionZoom(id)
+          .then((z) => map.easeTo({ center: coords, zoom: Math.min(z + 0.4, 17), duration: reduceMotion ? 0 : 500 }));
+      });
+      clusterMarkers.set(id, new maplibregl.Marker({ element: b }).setLngLat(coords).addTo(map));
+    }
+  }
+  for (const [id, m] of clusterMarkers) if (!seen.has(id)) { m.remove(); clusterMarkers.delete(id); }
+}
+map.on('render', syncClusters);
+
+/* clicking a church opens its card */
+for (const layer of ['pts', 'pts-hl', 'others']) {
+  map.on('click', layer, (e) => { openPopup(e.features[0].properties.id); });
+  map.on('mouseenter', layer, () => { map.getCanvas().style.cursor = 'pointer'; });
+  map.on('mouseleave', layer, () => { map.getCanvas().style.cursor = ''; });
+}
+
+let popup = null, popupId = null, hoverId = null;
+function directionsUrl(p) {
+  const precise = p.gp === 'exact' || p.gs === 'verified';
+  return 'https://www.google.com/maps/dir/?api=1&destination=' + encodeURIComponent(precise ? `${p.lat},${p.lng}` : `${p.n}, ${p.ad || placeLine(p)}`);
+}
+function popupContent(p) {
+  const r = RESULTS.find((x) => x.p.id === p.id);
+  const svcs = r && r.svcs.length ? r.svcs
+    : (scheduleActive() ? [] : p.services.filter((s) => MASSLIKE.has(s.type)).sort((a, b) => minsUntil(a) - minsUntil(b)));
+  const d = state.origin ? km(state.origin, p) : null;
+  const times = svcs.length
+    ? `<div class="times">${svcs.slice(0, 3).map((s) => {
+        const extra = [typeWord(s.type), s.langs.join(', '), s.venue && 'at ' + s.venue].filter(Boolean).join(', ');
+        return `<span class="t"><b>${dayWord(s.day)}</b> ${fmtTime(s.min)}${extra ? ' <em>' + esc(extra) + '</em>' : ''}</span>`;
+      }).join('')}${svcs.length > 3 ? `<span class="t more">+${svcs.length - 3} more</span>` : ''}</div>`
+    : `<div class="nottimes">Mass times not listed yet</div>`;
+  const el = document.createElement('div');
+  el.className = 'pop';
+  el.innerHTML = `<h3>${esc(p.n)}</h3>
+    <p class="place">${esc(placeLine(p))}${d != null ? ', ' + fmtKm(d) : ''}</p>
+    ${p.fd ? `<p class="fd">Feast day: ${esc(p.fd)}</p>` : ''}
+    ${times}
+    <div class="acts">
+      <button type="button" class="primary" data-act="details">${p.services.length ? 'Mass times and details' : 'Details'}</button>
+      <a href="${esc(directionsUrl(p))}" target="_blank" rel="noopener">Directions</a>
+      ${p.ph[0] ? `<a href="tel:${esc(p.ph[0].replace(/[^\d+]/g, ''))}">Call</a>` : ''}
+    </div>`;
+  el.querySelector('[data-act="details"]').addEventListener('click', () => select(p.id, true));
+  return el;
+}
+function openPopup(id) {
+  const p = parishes.find((x) => x.id === id);
+  if (!p || !p.hasCoords) return;
+  if (popup && popupId === id) return;
+  closePopup();
+  popupId = id;
+  const pp = new maplibregl.Popup({ offset: 14, maxWidth: '330px', focusAfterOpen: false, closeButton: true })
+    .setLngLat([p.lng, p.lat]).setDOMContent(popupContent(p)).addTo(map);
+  pp.on('close', () => { if (popup === pp) { popup = null; popupId = null; updateHL(); } });
+  popup = pp;
+  updateHL();
+}
+function closePopup() { if (popup) { const pp = popup; popup = null; popupId = null; pp.remove(); updateHL(); } }
+function updateHL() {
+  if (!styleReady || !map.getLayer('pts-hl')) return;
+  const ids = [hoverId, popupId, state.selected && state.selected.id].filter(Boolean);
+  map.setFilter('pts-hl', ['in', ['get', 'id'], ['literal', ids]]);
+}
+function hilite(id, on) { hoverId = on ? id : null; updateHL(); }
+function paintDots() {
+  if (!styleReady || !map.getSource('parishes')) return;
+  const d = mapData();
+  resetClusters();
+  map.getSource('parishes').setData(d.results);
+  map.getSource('others').setData(d.others);
+  map.getSource('radius').setData(d.radius);
+  map.getSource('origin').setData(d.origin);
+  $('#lg-other').style.display = d.others.features.length ? '' : 'none';
+  updateHL();
+}
+function boundsOf(pts) {
+  const xs = pts.map((p) => p[0]), ys = pts.map((p) => p[1]);
+  return [[Math.min(...xs), Math.min(...ys)], [Math.max(...xs), Math.max(...ys)]];
 }
 function fitResults() {
-  if (state.origin && state.radius) {
-    const [x, y] = proj(state.origin.lat, state.origin.lng), r = state.radius * UNITS_PER_KM;
-    return fitBox(x - r, y - r, x + r, y + r, 1.12);
+  let b;
+  if (state.origin && state.radius) b = boundsOf(circlePoly(state.origin.lat, state.origin.lng, state.radius));
+  else {
+    const pts = RESULTS.map((r) => r.p).filter((p) => p.hasCoords).map((p) => [p.lng, p.lat]);
+    if (state.origin) pts.push([state.origin.lng, state.origin.lat]);
+    b = !pts.length || RESULTS.length === parishes.length ? KA_BOUNDS : boundsOf(pts);
   }
-  const pts = RESULTS.map((r) => r.p).filter((p) => p.hasCoords);
-  if (state.origin) pts.push({ x: proj(state.origin.lat, state.origin.lng)[0], y: proj(state.origin.lat, state.origin.lng)[1] });
-  if (!pts.length || pts.length === parishes.length) return fitBox(0, 0, GEO.w, GEO.h, 1.02);
-  fitBox(Math.min(...pts.map((p) => p.x)), Math.min(...pts.map((p) => p.y)), Math.max(...pts.map((p) => p.x)), Math.max(...pts.map((p) => p.y)), 1.25);
+  map.fitBounds(b, { padding: 48, maxZoom: 14, duration: reduceMotion ? 0 : 700 });
 }
-function ensureVisible(p) {
-  const m = view.w * 0.08;
-  if (p.x < view.x + m || p.x > view.x + view.w - m || p.y < view.y + m || p.y > view.y + view.h - m || view.w > 260) {
-    setView(p.x, p.y, Math.min(view.w, 90));
-  }
+function ensureVisible(p, fromMap) {
+  if (!fromMap) map.flyTo({ center: [p.lng, p.lat], zoom: Math.max(map.getZoom(), 14.5), duration: reduceMotion ? 0 : 900 });
+  openPopup(p.id);
 }
-function hilite(id, on) {
-  const p = parishes.find((x) => x.id === id);
-  if (!p || !p.dot) return;
-  if (on) { showTip(p); p.dot.style.fill = 'var(--ink)'; } else { hideTip(); p.dot.style.fill = ''; }
-}
-
-/* tooltip */
-const tip = $('#tip');
-function showTip(p) {
-  const r = svg.getBoundingClientRect(), s = scale();
-  const x = (p.x - view.x) * s, y = (p.y - view.y) * s;
-  if (x < 0 || y < 0 || x > r.width || y > r.height) return hideTip();
-  tip.innerHTML = esc(p.n) + (p.loc ? ' <small>' + esc(titleCase(p.loc)) + '</small>' : '');
-  tip.style.left = x + 'px'; tip.style.top = y + 'px'; tip.style.display = 'block';
-}
-function hideTip() { tip.style.display = 'none'; }
-
-/* pan and zoom */
-let drag = null;
-svg.addEventListener('pointerdown', (e) => {
-  drag = { x: e.clientX, y: e.clientY, vx: view.x, vy: view.y, moved: false, id: e.pointerId, target: e.target };
-});
-svg.addEventListener('pointermove', (e) => {
-  if (drag && e.pointerId === drag.id) {
-    const dx = e.clientX - drag.x, dy = e.clientY - drag.y;
-    if (!drag.moved && Math.hypot(dx, dy) > 4) { drag.moved = true; svg.classList.add('dragging'); svg.setPointerCapture(e.pointerId); hideTip(); }
-    if (drag.moved) { const s = scale(); view.x = drag.vx - dx / s; view.y = drag.vy - dy / s; applyView(); }
-    return;
-  }
-  const t = e.target;
-  if (t.classList && t.classList.contains('dot')) showTip(parishes.find((p) => p.id === t.dataset.id)); else hideTip();
-});
-function endDrag(e) {
-  if (!drag || e.pointerId !== drag.id) return;
-  const t = drag.target;
-  if (!drag.moved && t.classList && t.classList.contains('dot')) select(t.dataset.id, 'map');
-  svg.classList.remove('dragging'); drag = null;
-}
-svg.addEventListener('pointerup', endDrag);
-svg.addEventListener('pointercancel', endDrag);
-svg.addEventListener('pointerleave', hideTip);
-function zoomAt(factor, px, py) {
-  const s = scale();
-  const ux = view.x + px / s, uy = view.y + py / s;
-  const w = Math.max(6, Math.min(GEO.w * 1.6, view.w * factor));
-  const k = w / view.w;
-  view.x = ux - (ux - view.x) * k; view.y = uy - (uy - view.y) * k; view.w = w;
-  applyView();
-}
-svg.addEventListener('wheel', (e) => {
-  e.preventDefault();
-  const r = svg.getBoundingClientRect();
-  zoomAt(Math.exp(e.deltaY * 0.0015), e.clientX - r.left, e.clientY - r.top);
-}, { passive: false });
-$('#zin').addEventListener('click', () => zoomAt(0.6, svg.clientWidth / 2, svg.clientHeight / 2));
-$('#zout').addEventListener('click', () => zoomAt(1.6, svg.clientWidth / 2, svg.clientHeight / 2));
-$('#zfit').addEventListener('click', fitResults);
-new ResizeObserver(() => applyView()).observe(svg);
 
 /* ---------- search box ---------- */
 const q = $('#q'), sugg = $('#sugg'), sbox = $('#sbox');
@@ -848,7 +930,6 @@ function update(refit) {
 /* first paint */
 requestAnimationFrame(() => {
   update();
-  fitBox(0, 0, GEO.w, GEO.h, 1.02);
   const id = location.hash.slice(1);
   if (id && parishes.some((p) => p.id === id)) select(id);
 });
