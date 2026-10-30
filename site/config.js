@@ -1,10 +1,13 @@
 /* Find a Mass settings.
-   maptilerKey: your MapTiler API key (https://cloud.maptiler.com/account/keys/).
-   Restrict the key to your site's address in MapTiler so others can't use it.
-   Leave it empty to use the plain district map, which needs no key.
-   If the repository has a MAPTILER_KEY variable, the deploy workflow fills this in for you. */
+
+   mapStyleUrl: the street map. OpenFreeMap is free, needs no account or key,
+   and has no limits on map views. Its styles:
+     https://tiles.openfreemap.org/styles/liberty    detailed and colourful (default)
+     https://tiles.openfreemap.org/styles/bright     classic road-map colours
+     https://tiles.openfreemap.org/styles/positron   pale and minimal, so pins stand out most
+   Any other MapLibre style URL also works (for example from MapTiler or Stadia Maps).
+   If the style can't load, the app switches to OpenStreetMap's standard map automatically.
+   Set it to '' to always use that OpenStreetMap map. */
 window.FIND_A_MASS_CONFIG = {
-  maptilerKey: '',
-  mapStyle: 'streets-v2',
-  mapStyleDark: 'streets-v2', // the app always uses the bright style
+  mapStyleUrl: 'https://tiles.openfreemap.org/styles/liberty',
 };
