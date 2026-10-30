@@ -3,267 +3,246 @@
 <head>
 <meta charset="utf-8">
 <meta name="description" content="Find Catholic parishes and Mass times near you in Karnataka. Search by town, pincode, day, time and language.">
-<meta name="theme-color" content="#1F5FBF">
+<meta name="theme-color" content="#2F5BEA">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>⛪</text></svg>">
-<title>Find a Mass in Karnataka</title>
+<title>Find a Mass</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Marcellus&family=Mulish:wght@400;600;700;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="vendor/maplibre-gl/maplibre-gl.css">
 <script src="vendor/maplibre-gl/maplibre-gl.js"></script>
 <script src="config.js"></script>
 <style>
 :root {
   color-scheme: light;
-  --blue: #1F5FBF; --blue-deep: #164A99; --blue-soft: #E8F0FB; --blue-line: #BFD3EF;
-  --gold: #E8A317; --gold-soft: #FFF4D6; --gold-ink: #7A5200;
-  --bg: #F4F8FD; --surface: #FFFFFF; --ink: #13294B; --muted: #4E6280; --faint: #8292A9; --line: #DDE6F1;
-  --sea: #CDE5F6; --land: #FFFFFF; --land2: #EEF2F6; --distline: #D3DDE9; --dot: #A7B4C6;
-  --accent: var(--blue); --season: #2E8B57;
-  --serif: 'Marcellus', 'Palatino Linotype', Palatino, Georgia, serif;
-  --sans: 'Mulish', 'Segoe UI', system-ui, -apple-system, sans-serif;
+  --blue: #2F5BEA; --blue-deep: #1F44C4; --blue-soft: #EDF2FF;
+  --amber: #F5A524; --amber-soft: #FFF4DA; --amber-ink: #8A5A00;
+  --ink: #0B1B33; --muted: #56677F; --faint: #8593A8; --line: #E1E7F0; --soft: #F1F4F9; --surface: #FFFFFF;
+  --sea: #CFE3F3; --land: #FFFFFF; --land2: #EEF2F6; --distline: #D3DDE9; --dot: #A3B0C2;
+  --accent: var(--blue); --gold: var(--amber); --season: #2E8B57; --season-bg: #E6F4EA; --season-ink: #23683F;
+  --sans: 'Plus Jakarta Sans', 'Segoe UI', system-ui, -apple-system, sans-serif;
+  --panel-w: 420px;
   box-sizing: border-box;
-  padding-top: env(safe-area-inset-top, 0px);
-  padding-bottom: env(safe-area-inset-bottom, 0px);
 }
-:root[data-season="violet"] { --season: #7B4FC2; }
-:root[data-season="gold"] { --season: #E8A317; }
+:root[data-season="violet"] { --season: #7B4FC2; --season-bg: #F1EAFB; --season-ink: #5B3796; }
+:root[data-season="gold"] { --season: #D18A00; --season-bg: #FFF4DA; --season-ink: #7A5200; }
 *, *::before, *::after { box-sizing: inherit; }
 html, body { height: 100%; margin: 0; }
-html { scroll-padding-top: env(safe-area-inset-top, 0px); background: var(--blue); }
-body { background: var(--bg); color: var(--ink); font: 16px/1.5 var(--sans); -webkit-font-smoothing: antialiased; }
-body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 10; background: var(--blue); }
+body { font: 15px/1.45 var(--sans); color: var(--ink); background: var(--sea); -webkit-font-smoothing: antialiased; overflow: hidden; }
 button, input, select { font: inherit; color: inherit; }
-:focus-visible { outline: 3px solid var(--gold); outline-offset: 2px; }
+:focus-visible { outline: 3px solid color-mix(in srgb, var(--blue) 55%, transparent); outline-offset: 2px; }
 a { color: var(--blue); }
+.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 
-.app {
-  height: 100%; display: grid;
-  grid-template-columns: minmax(360px, 460px) 1fr;
-  grid-template-rows: auto auto 1fr;
-  grid-template-areas: "head head" "filt map" "list map";
+/* map fills the window */
+#map { position: fixed; inset: 0; }
+
+/* floating panel */
+.panel {
+  position: fixed; z-index: 5; top: calc(20px + env(safe-area-inset-top, 0px)); left: 20px; bottom: calc(20px + env(safe-area-inset-bottom, 0px));
+  width: var(--panel-w); display: flex; flex-direction: column;
+  background: rgba(255, 255, 255, 0.94); backdrop-filter: blur(18px) saturate(1.2); -webkit-backdrop-filter: blur(18px) saturate(1.2);
+  border-radius: 24px; box-shadow: 0 20px 50px rgba(11, 27, 51, 0.18), 0 0 0 1px rgba(11, 27, 51, 0.06);
 }
+.phead { padding: 20px 20px 14px; display: flex; flex-direction: column; gap: 12px; }
+.brandrow { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.brand { display: flex; align-items: center; gap: 10px; }
+.brand .mark { width: 36px; height: 36px; border-radius: 11px; background: var(--blue); display: grid; place-items: center; flex: none; }
+.brand h1 { margin: 0; font-size: 19px; font-weight: 800; letter-spacing: -0.02em; }
+.season { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 700; color: var(--season-ink); background: var(--season-bg); padding: 5px 10px; border-radius: 999px; white-space: nowrap; }
+.season i { width: 7px; height: 7px; border-radius: 50%; background: var(--season); }
 
-/* header: a bright Marian-blue band */
-.top { grid-area: head; display: flex; align-items: center; gap: 28px; padding: 14px 24px; background: var(--blue); color: #fff; flex-wrap: wrap; position: relative; }
-.top::after { content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 4px; background: var(--gold); }
-.brand { display: flex; align-items: center; gap: 12px; min-width: 240px; }
-.brand svg.mark { width: 42px; height: 42px; flex: none; }
-.brand h1 { font: 400 30px/1.05 var(--serif); margin: 0; letter-spacing: 0.01em; }
-.season { margin: 5px 0 0; font-size: 14px; color: rgba(255, 255, 255, .88); display: flex; align-items: center; gap: 7px; }
-.season i { width: 10px; height: 10px; border-radius: 50%; background: var(--season); box-shadow: 0 0 0 2px rgba(255, 255, 255, .9); display: inline-block; }
-.where { flex: 1 1 520px; display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
-.searchbox { position: relative; flex: 1 1 280px; color: var(--ink); }
-.searchbox input { width: 100%; height: 48px; padding: 0 40px 0 46px; border: 0; border-radius: 24px; background: #fff; font-size: 16px; box-shadow: 0 2px 0 rgba(0, 0, 0, .08); }
-.searchbox input::placeholder { color: var(--faint); }
-.searchbox input:focus { outline: 3px solid var(--gold); outline-offset: 0; }
-.searchbox svg.pin { position: absolute; left: 16px; top: 14px; width: 19px; height: 19px; color: var(--blue); }
-.searchbox .clear { position: absolute; right: 9px; top: 9px; width: 30px; height: 30px; border: 0; border-radius: 50%; background: var(--blue-soft); cursor: pointer; color: var(--muted); font-size: 19px; line-height: 1; display: none; }
-.searchbox.has .clear { display: block; }
-.suggest { position: absolute; z-index: 30; left: 0; right: 0; top: 54px; background: var(--surface); border: 1px solid var(--line); border-radius: 16px; box-shadow: 0 14px 34px rgba(19, 41, 75, .18); padding: 6px; margin: 0; list-style: none; display: none; max-height: 340px; overflow: auto; }
+.searchrow { display: flex; gap: 8px; }
+.searchbox { position: relative; flex: 1; }
+.searchbox svg.ic { position: absolute; left: 15px; top: 15px; width: 18px; height: 18px; color: var(--muted); pointer-events: none; }
+.searchbox input { width: 100%; height: 48px; border: 0; border-radius: 14px; background: var(--soft); padding: 0 40px 0 44px; font-size: 15px; font-weight: 600; }
+.searchbox input::placeholder { color: var(--faint); font-weight: 500; }
+.searchbox input:focus { outline: 2px solid var(--blue); background: var(--surface); }
+.searchbox .clear { position: absolute; right: 8px; top: 9px; width: 30px; height: 30px; border: 0; border-radius: 50%; background: transparent; color: var(--muted); cursor: pointer; display: none; place-items: center; }
+.searchbox .clear:hover { background: var(--line); }
+.searchbox.has .clear { display: grid; }
+.locate { width: 48px; height: 48px; flex: none; border: 0; border-radius: 14px; background: var(--blue-soft); color: var(--blue); display: grid; place-items: center; cursor: pointer; }
+.locate:hover { background: #DFE8FF; }
+.locate.on { background: var(--blue); color: #fff; }
+.suggest { position: absolute; z-index: 30; left: 0; right: 0; top: 54px; margin: 0; padding: 6px; list-style: none; background: var(--surface); border-radius: 16px; box-shadow: 0 16px 40px rgba(11, 27, 51, 0.2), 0 0 0 1px rgba(11, 27, 51, 0.06); display: none; max-height: 340px; overflow: auto; }
 .suggest.open { display: block; }
-.suggest li { padding: 9px 12px; border-radius: 10px; cursor: pointer; display: flex; justify-content: space-between; gap: 12px; }
+.suggest li { display: flex; justify-content: space-between; gap: 12px; padding: 9px 12px; border-radius: 10px; cursor: pointer; font-weight: 600; }
+.suggest li small { color: var(--muted); font-weight: 500; white-space: nowrap; }
 .suggest li[aria-selected="true"], .suggest li:hover { background: var(--blue-soft); }
-.suggest small { color: var(--muted); white-space: nowrap; }
-.btn { height: 46px; padding: 0 18px; border-radius: 23px; border: 1.5px solid var(--line); background: var(--surface); color: var(--ink); cursor: pointer; display: inline-flex; align-items: center; gap: 8px; font-weight: 700; white-space: nowrap; }
-.btn:hover { border-color: var(--blue); }
-.btn svg { width: 18px; height: 18px; }
-.top .btn { height: 48px; background: rgba(255, 255, 255, .14); border-color: rgba(255, 255, 255, .55); color: #fff; }
-.top .btn:hover { background: rgba(255, 255, 255, .24); border-color: #fff; }
-.radius { height: 48px; border-radius: 24px; border: 1.5px solid rgba(255, 255, 255, .55); background: rgba(255, 255, 255, .14); color: #fff; padding: 0 14px; font-weight: 600; }
-.radius option { color: var(--ink); }
-.radius:disabled { opacity: .5; }
-.msg { flex-basis: 100%; margin: 0; font-size: 14px; color: #fff; background: rgba(0, 0, 0, .14); border-radius: 10px; padding: 6px 12px; }
+.msg { margin: 0; font-size: 13px; color: var(--muted); background: var(--soft); border-radius: 10px; padding: 8px 12px; }
 .msg:empty { display: none; }
 
-/* filters */
-.filters { grid-area: filt; padding: 18px 24px 12px; background: var(--surface); border-bottom: 1px solid var(--line); }
-.fgroup { display: grid; grid-template-columns: 78px 1fr; gap: 6px 10px; align-items: start; margin-bottom: 10px; }
-.fgroup > span { font-size: 14px; font-weight: 700; color: var(--muted); padding-top: 6px; }
-.chips { display: flex; flex-wrap: wrap; gap: 6px; }
-.chip { border: 1.5px solid var(--line); background: var(--surface); border-radius: 18px; padding: 4px 13px; font-size: 14.5px; font-weight: 600; cursor: pointer; line-height: 1.5; color: var(--ink); }
-.chip:hover { border-color: var(--blue-line); background: var(--blue-soft); }
-.chip[aria-pressed="true"] { background: var(--blue); border-color: var(--blue); color: #fff; }
-.chip small { opacity: .7; margin-left: 3px; }
-.toggles { display: flex; gap: 18px; flex-wrap: wrap; font-size: 14.5px; margin-top: 6px; }
-.toggles label { display: inline-flex; gap: 8px; align-items: center; cursor: pointer; }
-.toggles input { accent-color: var(--blue); width: 17px; height: 17px; }
+.seg { position: relative; display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); gap: 4px; background: var(--soft); padding: 4px; border-radius: 13px; }
+.seg button { height: 36px; border: 0; border-radius: 10px; background: transparent; font-size: 13.5px; font-weight: 600; color: var(--muted); cursor: pointer; white-space: nowrap; display: inline-flex; align-items: center; justify-content: center; gap: 4px; padding: 0 6px; }
+.seg button:hover { color: var(--ink); }
+.seg button[aria-pressed="true"] { background: var(--surface); color: var(--ink); font-weight: 700; box-shadow: 0 1px 3px rgba(11, 27, 51, 0.14); }
 
-/* results */
-.list { grid-area: list; overflow: auto; background: var(--bg); }
-.listhead { position: sticky; top: 0; z-index: 2; background: var(--bg); padding: 14px 24px 10px; display: flex; justify-content: space-between; align-items: baseline; gap: 10px; }
-.count { font: 400 20px/1.25 var(--serif); margin: 0; color: var(--blue-deep); }
-.sort { font-size: 14px; color: var(--muted); display: flex; gap: 6px; align-items: center; }
-.sort select { border: 1.5px solid var(--line); border-radius: 9px; background: var(--surface); padding: 3px 6px; font-weight: 600; }
-.note { margin: 2px 24px 10px; font-size: 14px; color: var(--muted); background: var(--surface); border-left: 4px solid var(--gold); border-radius: 6px; padding: 9px 12px; }
-.results { list-style: none; margin: 0; padding: 4px 16px 24px; display: grid; gap: 10px; }
-.card { display: block; width: 100%; text-align: left; border: 1.5px solid var(--line); background: var(--surface); padding: 14px 16px; border-radius: 14px; cursor: pointer; }
-.card:hover, .card.hot { border-color: var(--blue); }
-.card .row1 { display: flex; justify-content: space-between; gap: 10px; align-items: baseline; }
-.card h3 { font: 400 19px/1.25 var(--serif); margin: 0; color: var(--ink); }
-.card .km { font-size: 13.5px; font-weight: 700; color: var(--blue); background: var(--blue-soft); border-radius: 10px; padding: 1px 8px; white-space: nowrap; font-variant-numeric: tabular-nums; }
-.card .km:empty { display: none; }
-.card .place { font-size: 14.5px; color: var(--muted); margin: 2px 0 9px; }
-.times { display: flex; flex-wrap: wrap; gap: 6px; }
-.t { font-size: 14px; border-radius: 8px; padding: 2px 9px; background: var(--gold-soft); color: var(--ink); font-variant-numeric: tabular-nums; }
-.t b { font-weight: 800; color: var(--gold-ink); }
-.t em { font-style: normal; color: var(--muted); }
-.t.past { background: transparent; border: 1px dashed var(--line); color: var(--faint); }
+.pills { display: flex; gap: 8px; flex-wrap: wrap; }
+.pillwrap { position: relative; }
+.pill { height: 36px; padding: 0 12px; border: 1px solid var(--line); border-radius: 999px; background: var(--surface); display: inline-flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 600; cursor: pointer; white-space: nowrap; }
+.pill:hover { border-color: #C9D4E6; }
+.pill.active { border-color: var(--blue); background: var(--blue-soft); color: var(--blue-deep); }
+.pill svg { width: 15px; height: 15px; flex: none; }
+.pill .chev { width: 12px; height: 12px; opacity: .7; }
+.menu { position: absolute; z-index: 40; top: 42px; left: 0; min-width: 210px; background: var(--surface); border-radius: 14px; padding: 6px; box-shadow: 0 16px 40px rgba(11, 27, 51, 0.2), 0 0 0 1px rgba(11, 27, 51, 0.06); display: none; }
+.menu.open { display: block; }
+.menu button { width: 100%; display: flex; align-items: center; justify-content: space-between; gap: 12px; height: 38px; padding: 0 10px; border: 0; background: transparent; border-radius: 9px; font-size: 14px; font-weight: 600; cursor: pointer; text-align: left; }
+.menu button:hover { background: var(--soft); }
+.menu button small { color: var(--muted); font-weight: 500; }
+.menu button .tick { width: 18px; height: 18px; border-radius: 6px; border: 1.5px solid #C9D4E6; display: grid; place-items: center; flex: none; }
+.menu button[aria-checked="true"] .tick { background: var(--blue); border-color: var(--blue); }
+.menu button[aria-checked="true"] .tick::after { content: ""; width: 8px; height: 5px; border: 2px solid #fff; border-top: 0; border-right: 0; transform: rotate(-45deg) translate(1px, -1px); }
+.menu button.radio .tick { border-radius: 50%; }
+.menu button.radio[aria-checked="true"] .tick::after { width: 6px; height: 6px; border: 0; border-radius: 50%; background: #fff; transform: none; }
+.menu hr { border: 0; border-top: 1px solid var(--line); margin: 6px 4px; }
+.menu .mnote { font-size: 12.5px; color: var(--muted); padding: 4px 10px 6px; margin: 0; max-width: 240px; }
+
+.listhead { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 14px 20px 10px; border-top: 1px solid #EEF1F6; }
+.count { margin: 0; font-size: 15px; font-weight: 700; line-height: 1.3; }
+.sortseg { flex: none; grid-auto-columns: auto; padding: 3px; border-radius: 11px; }
+.sortseg button { height: 30px; font-size: 12.5px; padding: 0 10px; border-radius: 8px; }
+
+.scroll { flex: 1; min-height: 0; overflow: auto; padding: 0 12px 14px; overscroll-behavior: contain; }
+.note { margin: 0 8px 10px; font-size: 13px; color: var(--muted); background: var(--soft); border-radius: 12px; padding: 10px 12px; }
+.results { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.card { width: 100%; text-align: left; border: 1px solid #E8ECF3; background: var(--surface); border-radius: 16px; padding: 14px; display: flex; flex-direction: column; gap: 10px; cursor: pointer; }
+.card:hover { border-color: #C9D4E6; box-shadow: 0 4px 14px rgba(11, 27, 51, 0.06); }
+.card.sel { border: 2px solid var(--blue); padding: 13px; box-shadow: 0 6px 18px rgba(47, 91, 234, 0.14); }
+.card .top { display: flex; justify-content: space-between; gap: 12px; width: 100%; }
+.card h3 { margin: 0; font-size: 16px; font-weight: 700; letter-spacing: -0.01em; line-height: 1.3; }
+.card .place { font-size: 13px; color: var(--muted); margin-top: 2px; }
+.km { flex: none; height: fit-content; font-size: 12.5px; font-weight: 700; color: var(--blue); background: var(--blue-soft); border-radius: 999px; padding: 4px 9px; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.times { display: flex; gap: 6px; flex-wrap: wrap; }
+.t { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; color: var(--ink); background: var(--amber-soft); border-radius: 9px; padding: 4px 9px; font-variant-numeric: tabular-nums; }
+.t b { color: var(--amber-ink); font-weight: 800; }
+.t .lg { font-size: 11.5px; font-weight: 700; color: var(--blue-deep); background: var(--surface); border-radius: 6px; padding: 1px 6px; }
+.t .vn { color: var(--muted); font-size: 12px; }
+.t.past { background: transparent; box-shadow: inset 0 0 0 1px var(--line); color: var(--faint); }
 .t.past b { color: var(--faint); }
-.t.more { background: transparent; color: var(--muted); padding-left: 2px; }
-.nottimes { font-size: 14px; color: var(--faint); }
-.empty { padding: 36px 24px; text-align: center; color: var(--muted); }
-.empty p { margin: 0 0 14px; }
-.moreBtn { display: block; margin: 4px auto 24px; }
+.t.more { background: transparent; color: var(--muted); padding: 4px 2px; }
+.nottimes { font-size: 13px; color: var(--faint); }
+.empty { text-align: center; color: var(--muted); padding: 30px 16px; }
+.empty p { margin: 0 0 12px; }
+.btn { height: 40px; padding: 0 16px; border-radius: 12px; border: 1px solid var(--line); background: var(--surface); font-weight: 700; font-size: 14px; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 7px; text-decoration: none; color: var(--ink); white-space: nowrap; }
+.btn:hover { border-color: #C9D4E6; }
+.btn.primary { background: var(--blue); border-color: var(--blue); color: #fff; }
+.btn.primary:hover { background: var(--blue-deep); }
+.btn.icon { width: 40px; padding: 0; background: var(--blue-soft); border-color: transparent; color: var(--blue); }
+.btn svg { width: 16px; height: 16px; }
+.moreBtn { display: flex; margin: 10px auto 4px; }
 
-/* detail */
-.detail { padding: 18px 24px 40px; }
-.back { border: 0; background: none; color: var(--blue); cursor: pointer; padding: 4px 0; font-weight: 700; display: inline-flex; gap: 6px; align-items: center; }
-.detail h2 { font: 400 30px/1.12 var(--serif); margin: 10px 0 4px; color: var(--ink); }
-.detail .sub { color: var(--muted); margin: 0 0 16px; }
-.actions { display: flex; gap: 8px; flex-wrap: wrap; margin: 0 0 22px; }
-.actions .btn { height: 42px; padding: 0 16px; font-size: 15px; text-decoration: none; }
-.actions .btn.primary { background: var(--blue); border-color: var(--blue); color: #fff; }
-.actions .btn.primary:hover { background: var(--blue-deep); }
-.facts { display: grid; grid-template-columns: 110px 1fr; gap: 6px 14px; margin: 0 0 22px; font-size: 15px; background: var(--surface); border: 1.5px solid var(--line); border-radius: 14px; padding: 14px 16px; }
+/* parish detail */
+.detail { padding: 6px 8px 8px; display: flex; flex-direction: column; gap: 14px; }
+.back { align-self: flex-start; border: 0; background: var(--soft); color: var(--ink); border-radius: 999px; height: 34px; padding: 0 12px 0 8px; font-weight: 700; font-size: 13px; cursor: pointer; display: inline-flex; align-items: center; gap: 4px; }
+.back:hover { background: var(--line); }
+.detail h2 { margin: 0; font-size: 22px; font-weight: 800; letter-spacing: -0.02em; line-height: 1.2; }
+.detail .sub { margin: 4px 0 0; color: var(--muted); font-size: 14px; }
+.actions { display: flex; gap: 8px; flex-wrap: wrap; }
+.label { font-size: 11.5px; font-weight: 800; letter-spacing: 0.07em; color: var(--muted); text-transform: uppercase; margin: 4px 0 0; }
+.week { display: flex; flex-direction: column; background: var(--surface); border: 1px solid #E8ECF3; border-radius: 16px; overflow: hidden; }
+.day { display: grid; grid-template-columns: 92px 1fr; gap: 10px; padding: 10px 14px; border-top: 1px solid #EEF1F6; }
+.day:first-child { border-top: 0; }
+.day.today { background: var(--amber-soft); }
+.day .dn { font-weight: 700; font-size: 13.5px; color: var(--muted); padding-top: 2px; }
+.day.today .dn { color: var(--amber-ink); }
+.svcs { display: flex; flex-direction: column; gap: 6px; }
+.svc { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.svc .tm { font-weight: 800; font-size: 14px; min-width: 64px; font-variant-numeric: tabular-nums; }
+.svc .lg { font-size: 12px; font-weight: 700; color: var(--blue-deep); background: var(--blue-soft); border-radius: 6px; padding: 2px 7px; }
+.svc .lg.none { color: var(--faint); background: var(--soft); font-weight: 600; }
+.svc .ty { font-size: 12px; font-weight: 700; color: var(--amber-ink); background: var(--amber-soft); border-radius: 6px; padding: 2px 7px; }
+.day.today .svc .ty { background: var(--surface); }
+.svc .mt { font-size: 12.5px; color: var(--muted); flex-basis: 100%; padding-left: 72px; margin-top: -2px; }
+.none-day { font-size: 13px; color: var(--faint); padding-top: 2px; }
+.facts { margin: 0; display: grid; grid-template-columns: 96px 1fr; gap: 8px 12px; font-size: 14px; background: var(--surface); border: 1px solid #E8ECF3; border-radius: 16px; padding: 14px; }
 .facts dt { color: var(--muted); font-weight: 600; }
 .facts dd { margin: 0; overflow-wrap: anywhere; }
-.detail h4 { font: 400 21px/1.2 var(--serif); margin: 0 0 10px; color: var(--blue-deep); }
-.week { width: 100%; border-collapse: separate; border-spacing: 0; font-size: 15px; background: var(--surface); border: 1.5px solid var(--line); border-radius: 14px; overflow: hidden; }
-.week th { text-align: left; font-weight: 700; color: var(--muted); padding: 9px 12px; vertical-align: top; width: 104px; border-top: 1px solid var(--line); }
-.week td { padding: 7px 12px 7px 0; border-top: 1px solid var(--line); }
-.week tr:first-child th, .week tr:first-child td { border-top: 0; }
-.week tr.today th { color: var(--gold-ink); }
-.week tr.today td, .week tr.today th { background: var(--gold-soft); }
-.svc { display: flex; gap: 8px; align-items: baseline; padding: 2px 0; flex-wrap: wrap; }
-.svc .tm { font-weight: 800; font-variant-numeric: tabular-nums; min-width: 66px; }
-.svc .ty { font-size: 12.5px; font-weight: 700; background: var(--blue-soft); color: var(--blue-deep); border-radius: 6px; padding: 0 7px; }
-.svc .mt { color: var(--muted); font-size: 14px; }
-.hint { font-size: 14px; color: var(--muted); margin: 10px 0 0; }
+.hint { margin: 0; font-size: 13px; color: var(--muted); }
 
-/* map */
-.mapwrap { grid-area: map; position: relative; background: var(--sea); overflow: hidden; }
-#map { position: absolute; inset: 0; }
-.cluster { border: 3px solid #fff; padding: 0; cursor: pointer; border-radius: 50%; display: grid; place-items: center; font: 800 14px/1 var(--sans); color: #fff;
-  background: var(--blue); box-shadow: 0 0 0 5px rgba(31, 95, 191, .22), 0 3px 10px rgba(19, 41, 75, .3); }
-.cluster:hover { background: var(--blue-deep); box-shadow: 0 0 0 8px rgba(232, 163, 23, .45), 0 3px 12px rgba(19, 41, 75, .35); }
-.cluster.s { width: 34px; height: 34px; } .cluster.m { width: 42px; height: 42px; font-size: 15px; } .cluster.l { width: 52px; height: 52px; font-size: 16px; }
-.maplibregl-popup-content { background: var(--surface); color: var(--ink); border-radius: 16px; padding: 0; overflow: hidden; box-shadow: 0 12px 32px rgba(19, 41, 75, .25); font-family: var(--sans); }
-.maplibregl-popup-anchor-bottom .maplibregl-popup-tip, .maplibregl-popup-anchor-bottom-left .maplibregl-popup-tip, .maplibregl-popup-anchor-bottom-right .maplibregl-popup-tip { border-top-color: var(--surface); }
-.maplibregl-popup-anchor-top .maplibregl-popup-tip, .maplibregl-popup-anchor-top-left .maplibregl-popup-tip, .maplibregl-popup-anchor-top-right .maplibregl-popup-tip { border-bottom-color: var(--blue); }
-.maplibregl-popup-anchor-left .maplibregl-popup-tip { border-right-color: var(--surface); }
-.maplibregl-popup-anchor-right .maplibregl-popup-tip { border-left-color: var(--surface); }
-.maplibregl-popup-close-button { font-size: 22px; width: 32px; height: 32px; color: #fff; border-radius: 0 16px 0 10px; }
-.maplibregl-popup-close-button:hover { background: rgba(255, 255, 255, .18); }
-.pop .ph { background: var(--blue); color: #fff; padding: 12px 40px 11px 16px; border-bottom: 3px solid var(--gold); }
-.pop h3 { font: 400 19px/1.2 var(--serif); margin: 0; }
-.pop .place { font-size: 14px; color: rgba(255, 255, 255, .85); margin: 2px 0 0; }
-.pop .pb { padding: 12px 16px 14px; }
-.pop .fd { font-size: 13.5px; color: var(--muted); margin: 0 0 10px; }
-.pop .times, .pop .nottimes { margin-bottom: 12px; }
-.pop .acts { display: flex; gap: 6px; flex-wrap: wrap; }
-.pop .acts a, .pop .acts button { font: 700 14px/1 var(--sans); height: 34px; padding: 0 12px; border-radius: 17px; border: 1.5px solid var(--line); background: var(--surface); color: var(--ink); cursor: pointer; text-decoration: none; display: inline-flex; align-items: center; }
-.pop .acts a:hover, .pop .acts button:hover { border-color: var(--blue); }
-.pop .acts .primary { background: var(--blue); border-color: var(--blue); color: #fff; }
+/* map pieces */
+.cluster { border: 3px solid #fff; padding: 0; cursor: pointer; border-radius: 50%; display: grid; place-items: center; font: 800 14px/1 var(--sans); color: #fff; background: var(--blue); box-shadow: 0 0 0 6px rgba(47, 91, 234, 0.22), 0 4px 12px rgba(11, 27, 51, 0.28); }
+.cluster:hover { background: var(--blue-deep); }
+.cluster.s { width: 36px; height: 36px; } .cluster.m { width: 44px; height: 44px; font-size: 15px; } .cluster.l { width: 54px; height: 54px; font-size: 16px; }
+.maplibregl-ctrl-top-right { top: calc(20px + env(safe-area-inset-top, 0px)); right: 20px; }
+.maplibregl-ctrl-top-right .maplibregl-ctrl { margin: 0 0 10px 0; }
+.maplibregl-ctrl-group { border-radius: 14px; box-shadow: 0 6px 20px rgba(11, 27, 51, 0.14); overflow: hidden; }
+.maplibregl-ctrl-group button { width: 44px; height: 44px; }
 .fitctl button { font-size: 17px; }
-.legend { position: absolute; left: 12px; bottom: 12px; z-index: 2; background: rgba(255, 255, 255, .94); border: 1px solid var(--line); border-radius: 12px; padding: 6px 12px; font-size: 13.5px; color: var(--muted); display: flex; gap: 14px; flex-wrap: wrap; max-width: calc(100% - 140px); box-shadow: 0 2px 8px rgba(19, 41, 75, .1); }
-.legend span { display: inline-flex; align-items: center; gap: 6px; }
-.legend i { width: 11px; height: 11px; border-radius: 50%; display: inline-block; border: 2px solid #fff; box-shadow: 0 0 0 1px var(--line); }
-.legend i.c { width: 18px; height: 18px; background: var(--blue); color: #fff; font: 800 9px/14px var(--sans); text-align: center; font-style: normal; }
 .maplibregl-ctrl-attrib { font-size: 11px; }
-.mapnote { position: absolute; top: 12px; left: 12px; z-index: 2; margin: 0; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 6px 12px; font-size: 13.5px; color: var(--muted); max-width: calc(100% - 80px); }
-.mapnote:empty { display: none; }
+.maplibregl-popup-content { padding: 0; border-radius: 20px; box-shadow: 0 18px 44px rgba(11, 27, 51, 0.24); font-family: var(--sans); color: var(--ink); }
+.maplibregl-popup-tip { display: none; }
+.maplibregl-popup-close-button { width: 30px; height: 30px; top: 14px; right: 14px; border-radius: 50%; background: var(--soft); color: var(--muted); font-size: 18px; line-height: 1; }
+.maplibregl-popup-close-button:hover { background: var(--line); }
+.pop { padding: 18px; display: flex; flex-direction: column; gap: 12px; width: 330px; max-width: 100%; }
+.pop h3 { margin: 0 34px 0 0; font-size: 17px; font-weight: 800; letter-spacing: -0.01em; line-height: 1.25; }
+.pop .place { margin: 3px 0 0; font-size: 13px; color: var(--muted); }
+.pop .fd { font-size: 12.5px; color: var(--muted); margin: -4px 0 0; }
+.pop .acts { display: flex; gap: 8px; }
+.pop .acts .btn { height: 42px; padding: 0 13px; }
+.pop .acts .btn.primary { flex: 1; }
 
-@media (max-width: 900px) {
-  html, body { height: auto; }
-  .app { height: auto; display: flex; flex-direction: column; }
-  .top { order: 0; padding: 14px 16px 18px; gap: 12px; } .filters { order: 1; } .mapwrap { order: 2; } .list { order: 3; }
-  .brand h1 { font-size: 27px; }
-  .brand svg.mark { width: 36px; height: 36px; }
-  .radius:disabled { display: none; }
-  .filters { padding: 14px 16px 8px; }
-  .fgroup { grid-template-columns: 1fr; gap: 6px; }
-  .fgroup > span { padding-top: 0; }
-  .chips { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; margin-inline: -16px; padding-inline: 16px; padding-bottom: 2px; }
-  .chips::-webkit-scrollbar { display: none; }
-  .chip { flex: none; }
-  .mapwrap { height: 56vh; min-height: 300px; }
-  .list { overflow: visible; }
-  .listhead { padding: 14px 16px 8px; top: env(safe-area-inset-top, 0px); }
-  .results { padding: 4px 12px 24px; }
-  .detail { padding: 16px; }
-  .note { margin: 2px 16px 10px; }
+/* phone: the panel becomes a bottom sheet under a floating search bar */
+@media (max-width: 760px) {
+  .panel { top: auto; left: 0; right: 0; bottom: 0; width: auto; height: 56vh; border-radius: 24px 24px 0 0; backdrop-filter: none; -webkit-backdrop-filter: none; background: var(--surface); padding-bottom: env(safe-area-inset-bottom, 0px); transition: height .25s ease; }
+  .panel.full { height: calc(100% - 84px - env(safe-area-inset-top, 0px)); }
+  .handle { display: block; }
+  .brandrow { display: none; }
+  .phead { padding: 4px 14px 10px; gap: 10px; }
+  .searchrow { position: fixed; z-index: 6; top: calc(12px + env(safe-area-inset-top, 0px)); left: 12px; right: 12px; }
+  .searchbox input { background: var(--surface); box-shadow: 0 6px 20px rgba(11, 27, 51, 0.16); }
+  .locate { background: var(--blue); color: #fff; box-shadow: 0 6px 20px rgba(47, 91, 234, 0.35); }
+  .pills { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; margin: 0 -14px; padding: 0 14px; }
+  .pills::-webkit-scrollbar { display: none; }
+  .menu { position: fixed; left: 12px; right: 12px; top: auto; bottom: 12px; min-width: 0; padding: 10px; }
+  .menu button { height: 46px; font-size: 15px; }
+  .listhead { padding: 10px 14px 8px; }
+  .seg button { font-size: 12.5px; padding: 0 4px; }
+  .scroll { padding: 0 10px 14px; }
+  .maplibregl-ctrl-top-right { top: calc(76px + env(safe-area-inset-top, 0px)); right: 12px; }
+  .msg { position: fixed; z-index: 6; top: calc(68px + env(safe-area-inset-top, 0px)); left: 12px; right: 70px; background: var(--surface); box-shadow: 0 6px 20px rgba(11, 27, 51, 0.14); }
 }
-@media (max-width: 600px) { .legend { display: none; } }
-@media (max-width: 520px) {
-  .where .btn span { display: none; }
-  .where .btn { padding: 0 14px; }
-  .facts { grid-template-columns: 1fr; gap: 0; }
-  .facts dd { margin-bottom: 8px; }
-}
-@media (prefers-reduced-motion: no-preference) {
-  .card, .chip, .btn { transition: border-color .12s, background-color .12s; }
-}
+.handle { display: none; width: 100%; height: 22px; border: 0; background: transparent; cursor: pointer; padding: 0; flex: none; }
+.handle::before { content: ""; display: block; width: 40px; height: 5px; border-radius: 3px; background: #D5DCE6; margin: 9px auto 0; }
+@media (prefers-reduced-motion: reduce) { .panel { transition: none; } }
+.seg .menu { left: auto; right: 0; }
 </style>
 </head>
 <body>
-<div class="app">
-  <header class="top">
-    <div class="brand">
-      <svg class="mark" viewBox="0 0 48 48" aria-hidden="true">
-        <circle cx="24" cy="24" r="23" fill="#fff"/>
-        <path d="M24 8v8M20 11.5h8" stroke="#E8A317" stroke-width="2.6" stroke-linecap="round"/>
-        <path d="M13 38V25l11-8 11 8v13z" fill="#1F5FBF"/>
-        <path d="M21 38v-6a3 3 0 0 1 6 0v6z" fill="#FFF4D6"/>
-        <circle cx="24" cy="25" r="2.4" fill="#E8A317"/>
-      </svg>
-      <div>
+<div id="map" aria-label="Map of parishes" role="region"></div>
+
+<aside class="panel" id="panel" aria-label="Find a Mass">
+  <button class="handle" id="handle" type="button" aria-label="Expand or collapse the list"></button>
+  <div class="phead">
+    <div class="brandrow">
+      <div class="brand">
+        <div class="mark"><svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v5M9.5 4.5h5"/><path d="M5 21V12l7-5 7 5v9"/><path d="M10 21v-4a2 2 0 0 1 4 0v4"/></svg></div>
         <h1>Find a Mass</h1>
-        <p class="season"><i></i><span id="season"></span></p>
       </div>
+      <span class="season" id="season"><i></i><span></span></span>
     </div>
-    <div class="where" role="search">
+
+    <div class="searchrow" role="search">
       <div class="searchbox" id="sbox">
-        <svg class="pin" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 21s-7-6.2-7-11.5A7 7 0 0 1 19 9.5C19 14.8 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.5"/></svg>
+        <svg class="ic" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
         <input id="q" type="text" autocomplete="off" placeholder="Town, pincode or parish" aria-label="Search by place, pincode or parish name" role="combobox" aria-expanded="false" aria-controls="sugg" aria-autocomplete="list">
-        <button class="clear" id="qclear" aria-label="Clear place">×</button>
+        <button class="clear" id="qclear" type="button" aria-label="Clear search"><svg aria-hidden="true" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
         <ul class="suggest" id="sugg" role="listbox"></ul>
       </div>
-      <button class="btn" id="locate" type="button">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/></svg>
-        <span>Use my location</span>
-      </button>
-      <select class="radius" id="radius" aria-label="Distance" disabled>
-        <option value="5">Within 5 km</option>
-        <option value="10">Within 10 km</option>
-        <option value="25" selected>Within 25 km</option>
-        <option value="50">Within 50 km</option>
-        <option value="100">Within 100 km</option>
-        <option value="0">Any distance</option>
-      </select>
-      <p class="msg" id="msg" role="status"></p>
+      <button class="locate" id="locate" type="button" aria-label="Use my location" title="Use my location"><svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11 21 3l-8 18-2-8z"/></svg></button>
     </div>
-  </header>
+    <p class="msg" id="msg" role="status"></p>
 
-  <section class="filters" aria-label="Filters">
-    <div class="fgroup"><span id="l-day">Day</span><div class="chips" id="days" role="group" aria-labelledby="l-day"></div></div>
-    <div class="fgroup"><span id="l-time">Time</span><div class="chips" id="times" role="group" aria-labelledby="l-time"></div></div>
-    <div class="fgroup"><span id="l-lang">Language</span><div class="chips" id="langs" role="group" aria-labelledby="l-lang"></div></div>
-    <div class="toggles">
-      <label><input type="checkbox" id="withTimes"> Only parishes with Mass times</label>
-      <label><input type="checkbox" id="devotions"> Include adoration and rosary</label>
-    </div>
-  </section>
+    <div class="seg" id="days" role="group" aria-label="Day"></div>
+    <div class="pills" id="pills"></div>
+  </div>
 
-  <section class="list" id="list" aria-live="polite"></section>
-
-  <section class="mapwrap" id="mapwrap" aria-label="Map of parishes">
-    <div id="map"></div>
-    <p class="mapnote" id="mapnote"></p>
-    <div class="legend"><span><i class="c">3</i>Group of parishes, click to zoom in</span><span><i style="background:var(--accent)"></i>Parish</span><span><i style="background:var(--gold)"></i>Selected</span><span id="lg-other"><i style="background:var(--dot)"></i>Doesn’t match filters</span></div>
-  </section>
-</div>
+  <div class="listhead">
+    <h2 class="count" id="count"></h2>
+    <div class="seg sortseg" id="sort" role="group" aria-label="Sort results"></div>
+  </div>
+  <div class="scroll" id="list" aria-live="polite"></div>
+</aside>
 
 <script>
 (async function () {
@@ -323,7 +302,8 @@ function season(now) {
 const NOW = new Date();
 const [seasonName, seasonColour] = season(NOW);
 document.documentElement.dataset.season = seasonColour;
-$('#season').textContent = NOW.toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long' }) + ', ' + seasonName;
+$('#season span').textContent = seasonName;
+$('#season').title = NOW.toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long' }) + ', ' + seasonName;
 
 /* ---------- data prep ---------- */
 const parishes = DATA.p.map((p) => {
@@ -378,7 +358,7 @@ const PLACES = [...places.values()].map((e) => ({ ...e, lat: e.lat / e.n, lng: e
 /* ---------- state ---------- */
 const state = {
   origin: null, radius: 25, day: 'any', times: new Set(), langs: new Set(),
-  devotions: false, withTimes: false, sort: 'auto', selected: null, limit: 50,
+  devotions: false, withTimes: false, sort: 'nearest', selected: null, limit: 50,
 };
 const todayIdx = NOW.getDay(), nowMin = NOW.getHours() * 60 + NOW.getMinutes();
 
@@ -423,10 +403,237 @@ function compute() {
   return out;
 }
 function sortMode() {
-  if (state.sort !== 'auto') return state.sort === 'nearest' && !state.origin ? 'name' : state.sort;
-  if (state.origin) return 'nearest';
-  return scheduleActive() || state.withTimes ? 'soonest' : 'name';
+  if (state.sort === 'nearest' && state.origin) return 'nearest';
+  return 'soonest';
 }
+
+/* ---------- icons ---------- */
+const ICON = {
+  chev: '<svg class="chev" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6"><path d="m6 9 6 6 6-6"/></svg>',
+  clock: '<svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>',
+  globe: '<svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"/></svg>',
+  ring: '<svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="2"/></svg>',
+  sliders: '<svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 6h16M7 12h10M10 18h4"/></svg>',
+  nav: '<svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11 21 3l-8 18-2-8z"/></svg>',
+  phone: '<svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1.9.4 1.8.7 2.7a2 2 0 0 1-.5 2.1L8 9.8a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.4c.9.3 1.8.6 2.7.7a2 2 0 0 1 1.7 2z"/></svg>',
+  back: '<svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="m15 18-6-6 6-6"/></svg>',
+};
+
+/* ---------- day switch and filter dropdowns ---------- */
+const LANG_COUNTS = {};
+parishes.forEach((p) => p.services.forEach((s) => s.langs.forEach((l) => { LANG_COUNTS[l] = (LANG_COUNTS[l] || 0) + 1; })));
+const LANGS = Object.keys(LANG_COUNTS).sort();
+const RADII = [5, 10, 25, 50, 100, 0];
+let openMenu = null;
+
+function renderFilters() {
+  /* day switch: Any day, Today, Tomorrow, Sunday (when it is neither), and a menu for the other days */
+  const tmr = (todayIdx + 1) % 7;
+  const segs = [['any', 'Any day'], ['today', 'Today'], ['tomorrow', 'Tomorrow']];
+  if (todayIdx !== 0 && tmr !== 0) segs.push([0, 'Sunday']);
+  const quick = new Set(segs.map(([v]) => v));
+  const otherDays = [1, 2, 3, 4, 5, 6, 0].filter((d) => d !== todayIdx && d !== tmr && !quick.has(d));
+  const otherPicked = typeof state.day === 'number' && !quick.has(state.day);
+  $('#days').innerHTML = segs.map(([v, l]) => `<button type="button" data-day="${v}" aria-pressed="${state.day === v}">${l}</button>`).join('') +
+    `<div class="pillwrap" style="display:contents"><button type="button" id="moreDays" aria-haspopup="true" aria-pressed="${otherPicked}">${otherPicked ? DAYSHORT[state.day] : 'More'}${ICON.chev}</button></div>`;
+  $('#days').querySelectorAll('[data-day]').forEach((b) => b.addEventListener('click', () => {
+    const v = b.dataset.day; state.day = /^\d$/.test(v) ? +v : v; update();
+  }));
+  $('#moreDays').addEventListener('click', (e) => {
+    e.stopPropagation();
+    showMenu($('#moreDays'), otherDays.map((d) => ({ label: DAYNAMES[d], radio: true, on: state.day === d, pick: () => { state.day = d; update(); } })));
+  });
+
+  /* dropdown pills */
+  const timeLabel = !state.times.size ? 'Any time' : state.times.size === 1 ? TIMES.find((t) => state.times.has(t.id)).label : state.times.size + ' times';
+  const langLabel = !state.langs.size ? 'Any language' : [...state.langs].join(', ');
+  const distLabel = state.radius ? `Within ${state.radius} km` : 'Any distance';
+  const extras = (state.devotions ? 1 : 0) + (state.withTimes ? 1 : 0);
+  $('#pills').innerHTML = `
+    <div class="pillwrap"><button type="button" class="pill${state.times.size ? ' active' : ''}" id="pTime" aria-haspopup="true">${ICON.clock}${esc(timeLabel)}${ICON.chev}</button></div>
+    <div class="pillwrap"><button type="button" class="pill${state.langs.size ? ' active' : ''}" id="pLang" aria-haspopup="true">${ICON.globe}${esc(langLabel)}${ICON.chev}</button></div>
+    <div class="pillwrap"><button type="button" class="pill${state.origin ? ' active' : ''}" id="pDist" aria-haspopup="true">${ICON.ring}${esc(distLabel)}${ICON.chev}</button></div>
+    <div class="pillwrap"><button type="button" class="pill${extras ? ' active' : ''}" id="pMore" aria-haspopup="true">${ICON.sliders}More${extras ? ' (' + extras + ')' : ''}</button></div>`;
+  $('#pTime').addEventListener('click', (e) => { e.stopPropagation(); showMenu(e.currentTarget, [
+    { label: 'Any time', radio: true, on: !state.times.size, pick: () => { state.times.clear(); update(); } },
+    { sep: true },
+    ...TIMES.map((t) => ({ label: t.label, on: state.times.has(t.id), keep: true, pick: () => { state.times.has(t.id) ? state.times.delete(t.id) : state.times.add(t.id); update(); } })),
+  ]); });
+  $('#pLang').addEventListener('click', (e) => { e.stopPropagation(); showMenu(e.currentTarget, [
+    { label: 'Any language', radio: true, on: !state.langs.size, pick: () => { state.langs.clear(); update(); } },
+    { sep: true },
+    ...LANGS.map((l) => ({ label: l, small: LANG_COUNTS[l] + (LANG_COUNTS[l] === 1 ? ' Mass' : ' Masses'), on: state.langs.has(l), keep: true, pick: () => { state.langs.has(l) ? state.langs.delete(l) : state.langs.add(l); update(); } })),
+    { note: 'Language is listed for only some Masses so far.' },
+  ]); });
+  $('#pDist').addEventListener('click', (e) => { e.stopPropagation(); showMenu(e.currentTarget, [
+    ...(state.origin ? [] : [{ note: 'Search a place or use your location to filter by distance.' }]),
+    ...RADII.map((r) => ({ label: r ? `Within ${r} km` : 'Any distance', radio: true, on: state.radius === r, pick: () => { state.radius = r; update(true); } })),
+  ]); });
+  $('#pMore').addEventListener('click', (e) => { e.stopPropagation(); showMenu(e.currentTarget, [
+    { label: 'Only parishes with Mass times', on: state.withTimes, keep: true, pick: () => { state.withTimes = !state.withTimes; update(); } },
+    { label: 'Include adoration and rosary', on: state.devotions, keep: true, pick: () => { state.devotions = !state.devotions; update(); } },
+  ]); });
+}
+
+function showMenu(anchor, items) {
+  const wasOpenHere = openMenu && openMenu.anchor === anchor.id;
+  closeMenu();
+  if (wasOpenHere) return;
+  const m = document.createElement('div');
+  m.className = 'menu open'; m.setAttribute('role', 'menu');
+  m.innerHTML = items.map((it, i) => it.sep ? '<hr>' : it.note ? `<p class="mnote">${esc(it.note)}</p>`
+    : `<button type="button" role="${it.radio ? 'menuitemradio' : 'menuitemcheckbox'}" class="${it.radio ? 'radio' : ''}" aria-checked="${!!it.on}" data-i="${i}"><span>${esc(it.label)}${it.small ? ` <small>${esc(it.small)}</small>` : ''}</span><span class="tick"></span></button>`).join('');
+  anchor.parentElement.append(m);
+  const anchorId = anchor.id;
+  m.querySelectorAll('button').forEach((b) => b.addEventListener('click', (e) => {
+    e.stopPropagation();
+    const it = items[+b.dataset.i];
+    it.pick();
+    if (it.keep) { const a = document.getElementById(anchorId); if (a) { openMenu = null; a.click(); } }
+    else closeMenu();
+  }));
+  openMenu = { el: m, anchor: anchorId };
+  const first = m.querySelector('button'); if (first) first.focus({ preventScroll: true });
+}
+function closeMenu() { if (openMenu) { openMenu.el.remove(); openMenu = null; } }
+document.addEventListener('click', (e) => { if (openMenu && !openMenu.el.contains(e.target)) closeMenu(); });
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape' && openMenu) { const a = document.getElementById(openMenu.anchor); closeMenu(); if (a) a.focus(); }
+});
+
+/* ---------- Mass time chips (with language) ---------- */
+function timeChip(s, withDay) {
+  const past = s.day === todayIdx && s.min < nowMin - 15;
+  const kind = typeWord(s.type);
+  return `<span class="t${past ? ' past' : ''}">${withDay ? `<b>${dayWord(s.day)}</b>` : ''}${fmtTime(s.min)}` +
+    `${s.langs.length ? `<span class="lg">${esc(s.langs.join(', '))}</span>` : ''}` +
+    `${kind ? `<span class="vn">${esc(kind)}</span>` : ''}${s.venue ? `<span class="vn">at ${esc(s.venue)}</span>` : ''}</span>`;
+}
+function shownServices(r) {
+  return r.svcs.length ? r.svcs
+    : (scheduleActive() ? [] : r.p.services.filter((s) => MASSLIKE.has(s.type)).sort((a, b) => minsUntil(a) - minsUntil(b)));
+}
+
+/* ---------- sort switch and results ---------- */
+let RESULTS = [];
+function renderSort() {
+  const mode = sortMode();
+  $('#sort').innerHTML = `<button type="button" data-sort="nearest" aria-pressed="${mode === 'nearest'}">Nearest</button><button type="button" data-sort="soonest" aria-pressed="${mode === 'soonest'}">Next Mass</button>`;
+  $('#sort').querySelectorAll('button').forEach((b) => b.addEventListener('click', () => {
+    if (b.dataset.sort === 'nearest' && !state.origin) {
+      state.sort = 'nearest';
+      setMsg('To sort by distance, search a town or use your location.');
+      $('#locate').click();
+      return;
+    }
+    state.sort = b.dataset.sort; update();
+  }));
+}
+function renderList() {
+  const list = $('#list');
+  renderSort();
+  const n = RESULTS.length;
+  const dayText = state.day === 'any' ? '' : state.day === 'today' ? ' with Mass today' : state.day === 'tomorrow' ? ' with Mass tomorrow' : ' with Mass on ' + DAYNAMES[state.day];
+  $('#count').textContent = (n === 1 ? '1 parish' : n.toLocaleString('en-IN') + ' parishes') + dayText;
+  if (state.selected) { renderDetail(state.selected); return; }
+  let html = '';
+  if (!state.origin && !scheduleActive() && !state.withTimes) html += `<p class="note">Search a town, area or pincode, or use your location, to see the parishes nearest you.</p>`;
+  if (scheduleActive() || state.withTimes) html += `<p class="note">Mass times are listed for ${withTimesCount} of ${parishes.length} parishes so far, so some nearby parishes won’t appear with these filters.</p>`;
+  if (!n) {
+    html += `<div class="empty"><p>No parishes match these filters.</p><button class="btn" id="resetAll" type="button">Clear filters</button></div>`;
+    list.innerHTML = html;
+    $('#resetAll').addEventListener('click', resetFilters);
+    return;
+  }
+  html += '<ul class="results">';
+  RESULTS.slice(0, state.limit).forEach((r) => {
+    const p = r.p, svcs = shownServices(r);
+    const times = svcs.length
+      ? `<span class="times">${svcs.slice(0, 3).map((s) => timeChip(s, true)).join('')}${svcs.length > 3 ? `<span class="t more">+${svcs.length - 3} more</span>` : ''}</span>`
+      : `<span class="nottimes">Mass times not listed yet${p.ph.length ? ', call ' + esc(p.ph[0]) : ''}</span>`;
+    html += `<li><button class="card" type="button" data-id="${esc(p.id)}">
+      <span class="top"><span><h3>${esc(p.n)}</h3><span class="place">${esc(placeLine(p))}</span></span>${r.d != null ? `<span class="km">${fmtKm(r.d)}</span>` : ''}</span>
+      ${times}</button></li>`;
+  });
+  html += '</ul>';
+  if (n > state.limit) html += `<button class="btn moreBtn" id="moreBtn" type="button">Show ${Math.min(50, n - state.limit)} more</button>`;
+  list.innerHTML = html;
+  list.querySelectorAll('.card').forEach((c) => {
+    c.addEventListener('click', () => select(c.dataset.id, true));
+    c.addEventListener('mouseenter', () => hilite(c.dataset.id, true));
+    c.addEventListener('mouseleave', () => hilite(c.dataset.id, false));
+  });
+  const more = $('#moreBtn');
+  if (more) more.addEventListener('click', () => { state.limit += 50; renderList(); });
+}
+
+/* ---------- parish detail ---------- */
+function directionsUrl(p) {
+  const precise = p.gp === 'exact' || p.gs === 'verified';
+  return 'https://www.google.com/maps/dir/?api=1&destination=' + encodeURIComponent(precise ? `${p.lat},${p.lng}` : `${p.n}, ${p.ad || placeLine(p)}`);
+}
+function renderDetail(p) {
+  const list = $('#list');
+  const dist = state.origin && p.hasCoords ? km(state.origin, p) : null;
+  const precise = p.gp === 'exact' || p.gs === 'verified';
+  const tel = p.ph[0] ? p.ph[0].replace(/[^\d+]/g, '') : '';
+  const actions = `<a class="btn primary" href="${esc(directionsUrl(p))}" target="_blank" rel="noopener">${ICON.nav}Directions</a>` +
+    (tel ? `<a class="btn" href="tel:${esc(tel)}">${ICON.phone}Call</a>` : '') +
+    (p.web ? `<a class="btn" href="${esc(p.web)}" target="_blank" rel="noopener">Website</a>` : '');
+  const facts = [
+    ['Address', [p.ad, p.pin && !String(p.ad || '').replace(/\s/g, '').includes(p.pin) ? p.pin : ''].filter(Boolean).join(', ')],
+    ['Phone', p.ph.join(', ')],
+    ['Email', p.em && `<a href="mailto:${esc(p.em)}">${esc(p.em)}</a>`],
+    ['Patron', p.pt], ['Feast day', p.fd], ['Diocese', p.dio], ['Established', p.est], ['Catholics', p.cat],
+  ].filter(([, v]) => v).map(([k, v]) => `<dt>${k}</dt><dd>${k === 'Email' ? v : esc(v)}</dd>`).join('');
+  let sched;
+  if (p.services.length) {
+    const order = [...Array(7)].map((_, i) => (todayIdx + i) % 7);
+    sched = '<div class="week">' + order.map((d) => {
+      const svcs = p.services.filter((s) => s.day === d).sort((a, b) => a.min - b.min);
+      const cells = svcs.length ? svcs.map((s) => {
+        const kind = typeWord(s.type) || (s.type !== 'Mass' ? s.type : '');
+        const meta = [s.venue && 'At ' + s.venue, s.rec && s.rec !== 'Weekly' && !(s.notes || '').toLowerCase().includes(s.rec.toLowerCase()) ? s.rec : '', s.notes].filter(Boolean).join(', ');
+        return `<div class="svc"><span class="tm">${fmtTime(s.min)}</span>` +
+          (s.langs.length ? `<span class="lg">${esc(s.langs.join(', '))}</span>` : `<span class="lg none">Language not listed</span>`) +
+          (kind ? `<span class="ty">${esc(kind)}</span>` : '') + (meta ? `<span class="mt">${esc(meta)}</span>` : '') + '</div>';
+      }).join('') : '<span class="none-day">No services listed</span>';
+      return `<div class="day${d === todayIdx ? ' today' : ''}"><span class="dn">${d === todayIdx ? 'Today' : d === (todayIdx + 1) % 7 ? 'Tomorrow' : DAYNAMES[d]}</span><div class="svcs">${cells}</div></div>`;
+    }).join('') + '</div>';
+  } else {
+    sched = `<p class="note" style="margin:0">This parish hasn’t shared its Mass times yet.${p.ph.length ? ' Call the parish office to check.' : ''}</p>`;
+  }
+  const pinNote = !p.hasCoords ? 'This parish isn’t on the map yet.'
+    : precise ? '' : p.gp === 'post_office' ? 'The map pin shows the nearest post office, so the church may be a short distance away.'
+    : 'The map pin is approximate, so use the address or directions to find the church.';
+  list.innerHTML = `<article class="detail">
+    <button class="back" id="back" type="button">${ICON.back}All results</button>
+    <div><h2>${esc(p.n)}</h2><p class="sub">${esc(placeLine(p))}${dist != null ? ', ' + fmtKm(dist) + ' away' : ''}</p></div>
+    <div class="actions">${actions}</div>
+    <p class="label">Mass times</p>${sched}
+    <dl class="facts">${facts}</dl>
+    ${pinNote ? `<p class="hint">${pinNote}</p>` : ''}
+  </article>`;
+  $('#back').addEventListener('click', () => select(null));
+  list.scrollTop = 0;
+}
+
+function select(id, fromList) {
+  const p = id ? parishes.find((x) => x.id === id) : null;
+  state.selected = p;
+  try { history.replaceState(null, '', p ? '#' + p.id : location.pathname + location.search); } catch (e) {}
+  renderList(); paintDots();
+  if (p && p.hasCoords) ensureVisible(p, fromList === 'map');
+  if (!p) closePopup();
+  if (p && isPhone()) $('#panel').classList.add('full');
+}
+window.addEventListener('hashchange', () => {
+  const id = location.hash.slice(1);
+  if (id && (!state.selected || state.selected.id !== id)) select(id);
+});
+
+const isPhone = () => window.matchMedia('(max-width: 760px)').matches;
+$('#handle').addEventListener('click', () => $('#panel').classList.toggle('full'));
 
 /* ---------- formatting ---------- */
 function fmtTime(min) {
@@ -444,169 +651,6 @@ function placeLine(p) {
   return [...new Set(bits)].join(', ') || p.dio;
 }
 function typeWord(t) { return t === 'Vigil Mass' ? 'Sunday vigil' : t === 'Mass' ? '' : t; }
-
-/* ---------- filter chips ---------- */
-function chip(label, pressed, onClick, extra) {
-  const b = document.createElement('button');
-  b.type = 'button'; b.className = 'chip'; b.setAttribute('aria-pressed', pressed ? 'true' : 'false');
-  b.innerHTML = esc(label) + (extra ? ' <small>' + esc(extra) + '</small>' : '');
-  b.addEventListener('click', onClick);
-  return b;
-}
-function renderChips() {
-  const days = $('#days'); days.innerHTML = '';
-  const dayOpts = [['any', 'Any day'], ['today', 'Today'], ['tomorrow', 'Tomorrow']]
-    .concat([0, 1, 2, 3, 4, 5, 6].filter((d) => d !== todayIdx && d !== (todayIdx + 1) % 7).map((d) => [d, DAYSHORT[d]]));
-  dayOpts.forEach(([v, l]) => days.append(chip(l, state.day === v, () => { state.day = v; update(); })));
-
-  const times = $('#times'); times.innerHTML = '';
-  times.append(chip('Any time', !state.times.size, () => { state.times.clear(); update(); }));
-  TIMES.forEach((t) => times.append(chip(t.label, state.times.has(t.id), () => {
-    state.times.has(t.id) ? state.times.delete(t.id) : state.times.add(t.id); update();
-  })));
-
-  const langs = $('#langs'); langs.innerHTML = '';
-  const counts = {};
-  parishes.forEach((p) => p.services.forEach((s) => s.langs.forEach((l) => { counts[l] = (counts[l] || 0) + 1; })));
-  langs.append(chip('Any language', !state.langs.size, () => { state.langs.clear(); update(); }));
-  Object.keys(counts).sort().forEach((l) => langs.append(chip(l, state.langs.has(l), () => {
-    state.langs.has(l) ? state.langs.delete(l) : state.langs.add(l); update();
-  })));
-}
-
-/* ---------- list ---------- */
-let RESULTS = [];
-function renderList() {
-  const list = $('#list');
-  if (state.selected) { renderDetail(state.selected); return; }
-  const mode = sortMode();
-  const n = RESULTS.length;
-  let head = n === 1 ? '1 parish' : n.toLocaleString('en-IN') + ' parishes';
-  if (state.origin) head += state.radius ? ` within ${state.radius} km of ${state.origin.label}` : ` by distance from ${state.origin.label}`;
-  const sortSel = `<label class="sort">Sort
-      <select id="sortSel">
-        <option value="auto"${state.sort === 'auto' ? ' selected' : ''}>Best match</option>
-        <option value="nearest"${state.sort === 'nearest' ? ' selected' : ''}${state.origin ? '' : ' disabled'}>Nearest</option>
-        <option value="soonest"${state.sort === 'soonest' ? ' selected' : ''}>Next Mass</option>
-        <option value="name"${state.sort === 'name' ? ' selected' : ''}>A to Z</option>
-      </select></label>`;
-  let html = `<div class="listhead"><h2 class="count">${esc(head)}</h2>${sortSel}</div>`;
-  if (!state.origin && !scheduleActive()) html += `<p class="note">Search for a town, area or pincode, or use your location, to see the parishes nearest you.</p>`;
-  if (scheduleActive() || state.withTimes) {
-    html += `<p class="note">Mass times are listed for ${withTimesCount} of ${parishes.length} parishes so far, so many nearby parishes won’t appear when you filter by day, time or language. Clear these filters to see every parish and its phone number.</p>`;
-  }
-  if (!n) {
-    html += `<div class="empty"><p>No parishes match these filters.</p><p>Try a wider distance, another day or time, or a different language.</p><button class="btn" id="resetAll" type="button">Clear filters</button></div>`;
-    list.innerHTML = html; bindListHead();
-    $('#resetAll').addEventListener('click', resetFilters);
-    return;
-  }
-  html += '<ul class="results">';
-  RESULTS.slice(0, state.limit).forEach((r) => {
-    const p = r.p;
-    let times = '';
-    const svcs = r.svcs.length ? r.svcs : (scheduleActive() ? [] : p.services.filter((s) => MASSLIKE.has(s.type)).sort((a, b) => minsUntil(a) - minsUntil(b)));
-    if (svcs.length) {
-      const show = svcs.slice(0, 4).map((s) => {
-        const past = s.day === todayIdx && s.min < nowMin - 15;
-        const extra = [typeWord(s.type), s.langs.join(', '), s.venue && 'at ' + s.venue].filter(Boolean).join(', ');
-        return `<span class="t${past ? ' past' : ''}"><b>${dayWord(s.day)}</b> ${fmtTime(s.min)}${extra ? ' <em>' + esc(extra) + '</em>' : ''}</span>`;
-      }).join('');
-      times = `<div class="times">${show}${svcs.length > 4 ? `<span class="t more">+${svcs.length - 4} more</span>` : ''}</div>`;
-    } else {
-      times = `<div class="nottimes">Mass times not listed yet${p.ph.length ? ', call ' + esc(p.ph[0]) : ''}</div>`;
-    }
-    html += `<li><button class="card" type="button" data-id="${esc(p.id)}">
-      <div class="row1"><h3>${esc(p.n)}</h3><span class="km">${fmtKm(r.d)}</span></div>
-      <div class="place">${esc(placeLine(p))}</div>${times}</button></li>`;
-  });
-  html += '</ul>';
-  if (n > state.limit) html += `<button class="btn moreBtn" id="moreBtn" type="button">Show ${Math.min(50, n - state.limit)} more</button>`;
-  list.innerHTML = html;
-  bindListHead();
-  list.querySelectorAll('.card').forEach((c) => {
-    c.addEventListener('click', () => select(c.dataset.id, true));
-    c.addEventListener('mouseenter', () => hilite(c.dataset.id, true));
-    c.addEventListener('mouseleave', () => hilite(c.dataset.id, false));
-  });
-  const more = $('#moreBtn');
-  if (more) more.addEventListener('click', () => { state.limit += 50; renderList(); });
-}
-function bindListHead() {
-  const s = $('#sortSel');
-  if (s) s.addEventListener('change', () => { state.sort = s.value; update(); });
-}
-
-/* ---------- detail ---------- */
-function renderDetail(p) {
-  const list = $('#list');
-  const dist = state.origin && p.hasCoords ? km(state.origin, p) : null;
-  const precise = p.gp === 'exact' || p.gs === 'verified';
-  const dest = precise ? `${p.lat},${p.lng}` : `${p.n}, ${p.ad || placeLine(p)}`;
-  const dirUrl = 'https://www.google.com/maps/dir/?api=1&destination=' + encodeURIComponent(dest);
-  const web = p.web ? p.web : '';
-  const actions = [
-    `<a class="btn primary" href="${esc(dirUrl)}" target="_blank" rel="noopener">Get directions</a>`,
-    p.ph[0] ? `<a class="btn" href="tel:${esc(p.ph[0].replace(/[^\d+]/g, ''))}">Call ${esc(p.ph[0])}</a>` : '',
-    web ? `<a class="btn" href="${esc(web)}" target="_blank" rel="noopener">Website</a>` : '',
-  ].join('');
-  const facts = [
-    ['Address', [p.ad, p.pin && !String(p.ad || '').replace(/\s/g, '').includes(p.pin) ? p.pin : ''].filter(Boolean).join(', ')],
-    ['Phone', p.ph.join(', ')],
-    ['Email', p.em && `<a href="mailto:${esc(p.em)}">${esc(p.em)}</a>`],
-    ['Patron', p.pt],
-    ['Feast day', p.fd],
-    ['Diocese', p.dio],
-    ['Established', p.est],
-    ['Catholics', p.cat],
-  ].filter(([, v]) => v).map(([k, v]) => `<dt>${k}</dt><dd>${k === 'Email' ? v : esc(v)}</dd>`).join('');
-
-  let sched;
-  if (p.services.length) {
-    const order = [...Array(7)].map((_, i) => (todayIdx + i) % 7);
-    sched = '<table class="week"><tbody>' + order.map((d) => {
-      const svcs = p.services.filter((s) => s.day === d).sort((a, b) => a.min - b.min);
-      const cells = svcs.length ? svcs.map((s) => {
-        const meta = [s.langs.join(', '), s.venue && 'at ' + s.venue, s.rec && s.rec !== 'Weekly' && !(s.notes || '').toLowerCase().includes(s.rec.toLowerCase()) ? s.rec : '', s.notes].filter(Boolean).join(', ');
-        return `<div class="svc"><span class="tm">${fmtTime(s.min)}</span>${s.type !== 'Mass' ? `<span class="ty">${esc(typeWord(s.type) || s.type)}</span>` : ''}${meta ? `<span class="mt">${esc(meta)}</span>` : ''}</div>`;
-      }).join('') : '<span class="mt" style="color:var(--faint)">No services listed</span>';
-      return `<tr${d === todayIdx ? ' class="today"' : ''}><th scope="row">${d === todayIdx ? 'Today' : DAYNAMES[d]}</th><td>${cells}</td></tr>`;
-    }).join('') + '</tbody></table>';
-  } else {
-    sched = `<p class="hint">This parish hasn’t shared its Mass times yet.${p.ph.length ? ' Call the parish office to check.' : ''}</p>`;
-  }
-  const pinNote = !p.hasCoords ? 'This parish isn’t on the map yet.'
-    : precise ? '' : p.gp === 'post_office' ? 'Map pin shows the nearest post office, so the church may be a short distance away.'
-    : 'Map pin is approximate, so use the address or directions to find the church.';
-
-  list.innerHTML = `<article class="detail">
-    <button class="back" id="back" type="button">‹ Back to results</button>
-    <h2>${esc(p.n)}</h2>
-    <p class="sub">${esc(placeLine(p))}${dist != null ? ', ' + fmtKm(dist) + ' away' : ''}</p>
-    <div class="actions">${actions}</div>
-    <h4>Mass times</h4>${sched}
-    <dl class="facts" style="margin-top:22px">${facts}</dl>
-    ${pinNote ? `<p class="hint">${pinNote}</p>` : ''}
-  </article>`;
-  $('#back').addEventListener('click', () => select(null));
-  list.scrollTop = 0;
-}
-
-function select(id, fromList) {
-  const p = id ? parishes.find((x) => x.id === id) : null;
-  state.selected = p;
-  try { history.replaceState(null, '', p ? '#' + p.id : location.pathname + location.search); } catch (e) {}
-  renderList(); paintDots();
-  if (p && p.hasCoords) ensureVisible(p, fromList === 'map');
-  if (!p) closePopup();
-  if (p && window.matchMedia('(max-width: 900px)').matches && fromList !== 'map') {
-    $('#list').scrollIntoView({ behavior: 'smooth', block: 'start' });
-  }
-}
-window.addEventListener('hashchange', () => {
-  const id = location.hash.slice(1);
-  if (id && (!state.selected || state.selected.id !== id)) select(id);
-});
 
 /* ---------- map ---------- */
 const CFG = Object.assign({ mapStyleUrl: 'https://tiles.openfreemap.org/styles/liberty' }, window.FIND_A_MASS_CONFIG || {});
@@ -634,7 +678,7 @@ function styleSpec() {
 }
 
 const map = new maplibregl.Map({
-  container: 'map', style: styleSpec(), bounds: KA_BOUNDS, fitBoundsOptions: { padding: 24 },
+  container: 'map', style: styleSpec(), bounds: KA_BOUNDS, fitBoundsOptions: { padding: mapPadding() },
   attributionControl: { compact: true }, dragRotate: false, pitchWithRotate: false, maxZoom: 19,
 });
 map.touchZoomRotate.disableRotation();
@@ -695,7 +739,7 @@ function addLayers() {
   const accent = cssColor('--accent'), grey = cssColor('--dot'), ink = cssColor('--ink'), surface = cssColor('--surface');
   const d = mapData();
   map.addSource('radius', { type: 'geojson', data: d.radius });
-  map.addLayer({ id: 'radius-fill', type: 'fill', source: 'radius', paint: { 'fill-color': accent, 'fill-opacity': 0.08 } });
+  map.addLayer({ id: 'radius-fill', type: 'fill', source: 'radius', paint: { 'fill-color': accent, 'fill-opacity': 0.05 } });
   map.addLayer({ id: 'radius-line', type: 'line', source: 'radius', paint: { 'line-color': accent, 'line-width': 1.6, 'line-dasharray': [3, 2] } });
   map.addSource('origin', { type: 'geojson', data: d.origin });
   map.addLayer({ id: 'origin-halo', type: 'circle', source: 'origin', paint: { 'circle-radius': 15, 'circle-color': '#13294B', 'circle-opacity': 0.16 } });
@@ -711,7 +755,6 @@ function addLayers() {
   map.addLayer({ id: 'pts-hl', type: 'circle', source: 'parishes', filter: ['in', ['get', 'id'], ['literal', []]], paint: {
     'circle-radius': ['interpolate', ['linear'], ['zoom'], 6, 9, 15, 13], 'circle-color': cssColor('--gold'),
     'circle-stroke-color': accent, 'circle-stroke-width': 3 } });
-  $('#lg-other').style.display = d.others.features.length ? '' : 'none';
   updateHL();
 }
 
@@ -750,32 +793,22 @@ for (const layer of ['pts', 'pts-hl', 'others']) {
 }
 
 let popup = null, popupId = null, hoverId = null;
-function directionsUrl(p) {
-  const precise = p.gp === 'exact' || p.gs === 'verified';
-  return 'https://www.google.com/maps/dir/?api=1&destination=' + encodeURIComponent(precise ? `${p.lat},${p.lng}` : `${p.n}, ${p.ad || placeLine(p)}`);
-}
 function popupContent(p) {
   const r = RESULTS.find((x) => x.p.id === p.id);
-  const svcs = r && r.svcs.length ? r.svcs
-    : (scheduleActive() ? [] : p.services.filter((s) => MASSLIKE.has(s.type)).sort((a, b) => minsUntil(a) - minsUntil(b)));
+  const svcs = r ? shownServices(r) : p.services.filter((s) => MASSLIKE.has(s.type)).sort((a, b) => minsUntil(a) - minsUntil(b));
   const d = state.origin ? km(state.origin, p) : null;
-  const times = svcs.length
-    ? `<div class="times">${svcs.slice(0, 3).map((s) => {
-        const extra = [typeWord(s.type), s.langs.join(', '), s.venue && 'at ' + s.venue].filter(Boolean).join(', ');
-        return `<span class="t"><b>${dayWord(s.day)}</b> ${fmtTime(s.min)}${extra ? ' <em>' + esc(extra) + '</em>' : ''}</span>`;
-      }).join('')}${svcs.length > 3 ? `<span class="t more">+${svcs.length - 3} more</span>` : ''}</div>`
-    : `<div class="nottimes">Mass times not listed yet</div>`;
+  const tel = p.ph[0] ? p.ph[0].replace(/[^\d+]/g, '') : '';
   const el = document.createElement('div');
   el.className = 'pop';
-  el.innerHTML = `<div class="ph"><h3>${esc(p.n)}</h3>
-    <p class="place">${esc(placeLine(p))}${d != null ? ', ' + fmtKm(d) + ' away' : ''}</p></div>
-    <div class="pb">${p.fd ? `<p class="fd">Feast day: ${esc(p.fd)}</p>` : ''}
-    ${times}
+  el.innerHTML = `<div><h3>${esc(p.n)}</h3><p class="place">${esc(placeLine(p))}${d != null ? ', ' + fmtKm(d) : ''}</p></div>
+    ${p.fd ? `<p class="fd">Feast day: ${esc(p.fd)}</p>` : ''}
+    ${svcs.length ? `<div><p class="label" style="margin:0 0 6px">Next Masses</p><div class="times">${svcs.slice(0, 3).map((s) => timeChip(s, true)).join('')}</div></div>`
+      : `<p class="nottimes" style="margin:0">Mass times not listed yet</p>`}
     <div class="acts">
-      <button type="button" class="primary" data-act="details">${p.services.length ? 'Mass times and details' : 'Details'}</button>
-      <a href="${esc(directionsUrl(p))}" target="_blank" rel="noopener">Directions</a>
-      ${p.ph[0] ? `<a href="tel:${esc(p.ph[0].replace(/[^\d+]/g, ''))}">Call</a>` : ''}
-    </div></div>`;
+      <a class="btn primary" href="${esc(directionsUrl(p))}" target="_blank" rel="noopener">${ICON.nav}Directions</a>
+      ${tel ? `<a class="btn icon" href="tel:${esc(tel)}" aria-label="Call the parish">${ICON.phone}</a>` : ''}
+      <button class="btn" type="button" data-act="details">${p.services.length ? 'Schedule' : 'Details'}</button>
+    </div>`;
   el.querySelector('[data-act="details"]').addEventListener('click', () => select(p.id, true));
   return el;
 }
@@ -785,7 +818,7 @@ function openPopup(id) {
   if (popup && popupId === id) return;
   closePopup();
   popupId = id;
-  const pp = new maplibregl.Popup({ offset: 14, maxWidth: '330px', focusAfterOpen: false, closeButton: true })
+  const pp = new maplibregl.Popup({ offset: 18, maxWidth: '350px', focusAfterOpen: false, closeButton: true, padding: mapPadding() })
     .setLngLat([p.lng, p.lat]).setDOMContent(popupContent(p)).addTo(map);
   pp.on('close', () => { if (popup === pp) { popup = null; popupId = null; updateHL(); } });
   popup = pp;
@@ -806,12 +839,18 @@ function paintDots() {
   map.getSource('others').setData(d.others);
   map.getSource('radius').setData(d.radius);
   map.getSource('origin').setData(d.origin);
-  $('#lg-other').style.display = d.others.features.length ? '' : 'none';
   updateHL();
 }
 function boundsOf(pts) {
   const xs = pts.map((p) => p[0]), ys = pts.map((p) => p[1]);
   return [[Math.min(...xs), Math.min(...ys)], [Math.max(...xs), Math.max(...ys)]];
+}
+function mapPadding() {
+  if (isPhone()) {
+    const sheet = $('#panel').getBoundingClientRect().height;
+    return { top: 90, bottom: Math.min(sheet, window.innerHeight * 0.6) + 20, left: 30, right: 30 };
+  }
+  return { top: 40, bottom: 40, left: $('#panel').getBoundingClientRect().right + 40, right: 90 };
 }
 function fitResults() {
   let b;
@@ -821,13 +860,12 @@ function fitResults() {
     if (state.origin) pts.push([state.origin.lng, state.origin.lat]);
     b = !pts.length || RESULTS.length === parishes.length ? KA_BOUNDS : boundsOf(pts);
   }
-  map.fitBounds(b, { padding: 48, maxZoom: 14, duration: reduceMotion ? 0 : 700 });
+  map.fitBounds(b, { padding: mapPadding(), maxZoom: 14, duration: reduceMotion ? 0 : 700 });
 }
 function ensureVisible(p, fromMap) {
-  if (!fromMap) map.flyTo({ center: [p.lng, p.lat], zoom: Math.max(map.getZoom(), 14.5), duration: reduceMotion ? 0 : 900 });
+  if (!fromMap) map.flyTo({ center: [p.lng, p.lat], zoom: Math.max(map.getZoom(), 14.5), padding: mapPadding(), duration: reduceMotion ? 0 : 900 });
   openPopup(p.id);
 }
-
 /* ---------- search box ---------- */
 const q = $('#q'), sugg = $('#sugg'), sbox = $('#sbox');
 let sItems = [], sIdx = -1;
@@ -887,11 +925,11 @@ function setMsg(t) { $('#msg').textContent = t; }
 
 function setOrigin(o) {
   state.origin = o; state.limit = 50; state.selected = null;
-  $('#radius').disabled = !o;
+  if (o) state.sort = 'nearest';
+  $('#locate').classList.toggle('on', !!(o && o.label === 'your location'));
   try { history.replaceState(null, '', location.pathname + location.search); } catch (e) {}
   update(true);
 }
-$('#radius').addEventListener('change', (e) => { state.radius = +e.target.value; update(true); });
 
 $('#locate').addEventListener('click', () => {
   if (!navigator.geolocation) { setMsg('This browser can’t share your location. Type a town or area instead.'); return; }
@@ -900,9 +938,8 @@ $('#locate').addEventListener('click', () => {
     const o = { lat: pos.coords.latitude, lng: pos.coords.longitude, label: 'your location' };
     const nearest = parishes.filter((p) => p.hasCoords).reduce((m, p) => Math.min(m, km(o, p)), Infinity);
     q.value = 'My location'; sbox.classList.add('has');
-    if (nearest > 150) setMsg('You seem to be outside Karnataka. The directory covers 7 dioceses in Karnataka for now, so results may be far away.');
-    else setMsg('');
-    if (state.radius === 25) { state.radius = 10; $('#radius').value = '10'; }
+    setMsg(nearest > 150 ? 'You seem to be outside Karnataka. The directory covers 7 dioceses in Karnataka for now, so results may be far away.' : '');
+    if (state.radius === 25) state.radius = 10;
     setOrigin(o);
   }, (err) => {
     setMsg(err.code === 1 ? 'Location access is blocked. Allow it in your browser settings, or type a town or area instead.'
@@ -910,14 +947,10 @@ $('#locate').addEventListener('click', () => {
   }, { enableHighAccuracy: false, timeout: 10000, maximumAge: 300000 });
 });
 
-$('#withTimes').addEventListener('change', (e) => { state.withTimes = e.target.checked; update(); });
-$('#devotions').addEventListener('change', (e) => { state.devotions = e.target.checked; update(); });
-
 function resetFilters() {
-  state.day = 'any'; state.times.clear(); state.langs.clear(); state.withTimes = false;
-  $('#withTimes').checked = false;
+  state.day = 'any'; state.times.clear(); state.langs.clear(); state.withTimes = false; state.devotions = false;
   if (state.origin && state.radius && state.radius < 100) {
-    const steps = [5, 10, 25, 50, 100]; state.radius = steps[steps.indexOf(state.radius) + 1] || 100; $('#radius').value = String(state.radius);
+    const steps = [5, 10, 25, 50, 100]; state.radius = steps[steps.indexOf(state.radius) + 1] || 100;
   }
   update(true);
 }
@@ -927,7 +960,7 @@ function update(refit) {
   if (!refit) state.limit = 50;
   if (state.selected && refit !== 'keep') state.selected = null;
   RESULTS = compute();
-  renderChips(); renderList(); paintDots();
+  renderFilters(); renderList(); paintDots();
   if (refit) fitResults();
 }
 
