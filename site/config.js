@@ -6,5 +6,5 @@
 window.FIND_A_MASS_CONFIG = {
   maptilerKey: '',
   mapStyle: 'streets-v2',
-  mapStyleDark: 'streets-v2-dark',
+  mapStyleDark: 'streets-v2', // the app always uses the bright style
 };
